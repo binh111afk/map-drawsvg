@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Thiết kế bản đồ — kéo thả</title>
+<style>
+  :root{ --accent:#1a73e8; }
+  *{ box-sizing:border-box; }
+  body{ margin:0; height:100vh; display:flex; flex-direction:column; font-family:'Segoe UI',system-ui,sans-serif; background:#f2f1ec; overflow:hidden; user-select:none; -webkit-user-select:none; }
+  header{ display:flex; align-items:center; gap:6px; padding:8px 12px; background:#fff; border-bottom:1px solid #e3e3e0; flex-wrap:wrap; z-index:5; }
+  #logo{ font-size:14px; margin-right:6px; white-space:nowrap; color:#202124; }
+  .sep{ width:1px; height:22px; background:#e3e3e0; margin:0 4px; }
+  .grow{ flex:1; }
+  .btn{ border:1px solid #dadce0; background:#fff; border-radius:8px; padding:6px 11px; font-size:13px; color:#202124; cursor:pointer; font-family:inherit; }
+  .btn:hover:not(:disabled){ background:#f1f3f4; }
+  .btn:disabled{ opacity:.4; cursor:default; }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .btn.primary:hover:not(:disabled){ background:#1765cc; }
+  .btn.danger{ color:#d93025; }
+  .btn.active{ background:#e8f0fe; border-color:#a8c7fa; color:var(--accent); }
+  #zoomLabel{ font-size:12px; color:#5f6368; min-width:42px; text-align:center; }
+  main{ flex:1; display:flex; min-height:0; }
+  #palette{ width:192px; background:#fff; border-right:1px solid #e3e3e0; overflow-y:auto; padding:10px 8px 24px; flex-shrink:0; }
+  .cat{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#80868b; margin:12px 6px 4px; }
+  .pitem{ display:flex; align-items:center; gap:9px; padding:5px 8px; border-radius:9px; cursor:grab; }
+  .pitem:hover{ background:#eef3fd; }
+  .pitem svg{ flex-shrink:0; }
+  .pitem span{ font-size:13px; color:#202124; }
+  #canvasWrap{ flex:1; position:relative; min-width:0; }
+  #board{ width:100%; height:100%; display:block; background:#f2f1ec; touch-action:none; cursor:grab; }
+  #board.panning{ cursor:grabbing; }
+  #board g[data-id]{ cursor:move; }
+  #board [data-handle="rotate"]{ cursor:grab; }
+  #board [data-handle="resize"]{ cursor:nwse-resize; }
+  #board [data-handle="end1"], #board [data-handle="end2"]{ cursor:move; }
+  #board [data-handle="width"]{ cursor:ew-resize; }
+  #board [data-handle="vtx"]{ cursor:move; }
+  #board [data-handle="addv"]{ cursor:copy; }
+  #board [data-handle="add"]{ cursor:copy; }
+  #overlay{ pointer-events:none; }
+  #overlay [data-handle]{ pointer-events:all; }
+  #overlay [data-handle="dup"], #overlay [data-handle="del"]{ cursor:pointer; }
+  #overlay [data-handle="dup"]:hover circle, #overlay [data-handle="del"]:hover circle{ fill:#e8f0fe; stroke:#1a73e8; }
+  #hint{ position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.92); border:1px solid #e8e8e4; border-radius:9px; padding:7px 12px; font-size:12px; color:#5f6368; box-shadow:0 1px 4px rgba(60,64,67,.12); max-width:calc(100% - 24px); pointer-events:none; }
+  #props{ position:absolute; right:12px; bottom:12px; background:rgba(255,255,255,.97); border:1px solid #e8e8e4; border-radius:11px; padding:10px 12px; box-shadow:0 2px 8px rgba(60,64,67,.18); display:flex; flex-direction:column; gap:6px; width:200px; }
+  #props[hidden]{ display:none; }
+  #propsTitle{ font-size:12px; font-weight:600; color:#202124; }
+  #props label{ display:flex; justify-content:space-between; align-items:center; gap:8px; font-size:12px; color:#5f6368; }
+  #props input{ width:80px; border:1px solid #dadce0; border-radius:6px; padding:3px 6px; font-size:12px; font-family:inherit; }
+  #propsNote{ font-size:10.5px; color:#9aa0a6; line-height:1.4; }
+  #modal{ position:fixed; inset:0; background:rgba(32,33,36,.45); display:flex; align-items:center; justify-content:center; z-index:50; }
+  #modal[hidden]{ display:none; }
+  #modalCard{ background:#fff; border-radius:14px; padding:20px 22px; width:340px; box-shadow:0 8px 30px rgba(60,64,67,.3); display:flex; flex-direction:column; gap:12px; }
+  #modalTitle{ font-size:15px; font-weight:600; color:#202124; }
+  #modalInput{ border:1px solid #dadce0; border-radius:8px; padding:9px 12px; font-size:14px; font-family:inherit; outline:none; }
+  #modalInput:focus{ border-color:#1a73e8; box-shadow:0 0 0 2px rgba(26,115,232,.15); }
+  #modalBtns{ display:flex; justify-content:flex-end; gap:8px; }
+  #modalPicker{ display:flex; flex-direction:column; gap:8px; }
+  #modalPicker[hidden]{ display:none; }
+  .pk-label{ font-size:12px; color:#5f6368; }
+  #pkIcons{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  .pkIcon{ display:flex; align-items:center; justify-content:center; height:36px; border:1.5px solid #dadce0; border-radius:8px; cursor:pointer; background:#fff; }
+  .pkIcon:hover{ background:#f1f3f4; }
+  .pkIcon.sel{ background:#e8f0fe; border-color:#1a73e8; }
+  #pkColors{ display:flex; gap:7px; flex-wrap:wrap; }
+  .pkColor{ width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.15); }
+  .pkColor.sel{ box-shadow:0 0 0 2px #1a73e8; }
+</style>
+</head>
+<body>
+<header>
+  <div id="logo">🗺️ <b>Thiết kế bản đồ</b></div>
+  <div class="sep"></div>
+  <button id="btnUndo" class="btn" title="Hoàn tác (Ctrl+Z)">↶</button>
+  <button id="btnRedo" class="btn" title="Làm lại (Ctrl+Y)">↷</button>
+  <button id="btnGrid" class="btn active" title="Bật/tắt lưới và bám lưới">Lưới</button>
+  <button id="btnTheme" class="btn" title="Đổi giao diện màu (Maps / Xám)">Giao diện</button>
+  <div class="sep"></div>
+  <button id="btnDup" class="btn" title="Nhân đôi (Ctrl+D)">Nhân đôi</button>
+  <button id="btnDel" class="btn danger" title="Xóa (Delete)">Xóa</button>
+  <div class="grow"></div>
+  <button id="btnZoomOut" class="btn" title="Thu nhỏ">−</button>
+  <span id="zoomLabel">100%</span>
+  <button id="btnZoomIn" class="btn" title="Phóng to">+</button>
+  <div class="sep"></div>
+  <button id="btnSVG" class="btn primary" title="Tải bản đồ về dạng SVG">Xuất SVG</button>
+  <button id="btnCopySVG" class="btn" title="Sao chép code SVG vào clipboard (Ctrl+V ở nơi khác)">Sao chép SVG</button>
+  <button id="btnPNG" class="btn" title="Tải bản đồ về dạng PNG">Xuất PNG</button>
+  <button id="btnClear" class="btn danger" title="Xóa toàn bộ">Xóa hết</button>
+</header>
+<main>
+  <aside id="palette"></aside>
+  <div id="canvasWrap">
+    <svg id="board">
+      <defs id="defs"></defs>
+      <g id="world">
+        <g id="layerGrid"><rect id="gridRect" x="-3000" y="-2400" width="6200" height="5200" fill="url(#grid)"></rect></g>
+        <g id="layerGround"></g>
+        <g id="layerCasing"></g>
+        <g id="layerFill"></g>
+        <g id="layerItems"></g>
+        <g id="overlay"></g>
+      </g>
+    </svg>
+    <div id="hint"></div>
+    <div id="props" hidden>
+      <div id="propsTitle">Chỉ số đường</div>
+      <label>Chiều dài <input id="pLen" type="number" step="10" min="40"></label>
+      <label>Chiều rộng <input id="pW" type="number" step="2" min="8"></label>
+      <label>Độ mềm <input id="pSoft" type="number" step="0.05" min="0" max="1"></label>
+      <div id="propsNote">Độ mềm 0 = gãy khúc, 1 = rất mượt • Kéo dấu + trên đường để thêm chỗ uốn, nhấp đúp chấm cam để bỏ</div>
+    </div>
+  </div>
+</main>
+<div id="modal" hidden>
+  <div id="modalCard">
+    <div id="modalTitle">Nhập tên</div>
+    <input id="modalInput" type="text" maxlength="60" autocomplete="off" spellcheck="false">
+    <div id="modalPicker" hidden>
+      <div class="pk-label">Biểu tượng</div>
+      <div id="pkIcons"></div>
+      <div class="pk-label">Màu hiển thị</div>
+      <div id="pkColors"></div>
+    </div>
+    <div id="modalBtns">
+      <button id="modalCancel" class="btn">Hủy</button>
+      <button id="modalOk" class="btn primary">Lưu</button>
+    </div>
+  </div>
+</div>
+<script>
+'use strict';
+const NS = 'http://www.w3.org/2000/svg';
+const board = document.getElementById('board');
+const world = document.getElementById('world');
+const layers = {
+  grid:   document.getElementById('layerGrid'),
+  ground: document.getElementById('layerGround'),
+  casing: document.getElementById('layerCasing'),
+  fill:   document.getElementById('layerFill'),
+  items:  document.getElementById('layerItems')
+};
+const overlay   = document.getElementById('overlay');
+const zoomLabel = document.getElementById('zoomLabel');
+const hint      = document.getElementById('hint');
+const btnUndo = document.getElementById('btnUndo');
+const btnRedo = document.getElementById('btnRedo');
+const btnGrid = document.getElementById('btnGrid');
+const btnDup  = document.getElementById('btnDup');
+const btnDel  = document.getElementById('btnDel');
+
+const CARCOLORS = [
+  ['#e5533d','#a53728'], ['#4a89f3','#2f5fb3'], ['#f4b63f','#b3822a'],
+  ['#7d64c9','#564592'], ['#4ca46b','#337049'], ['#9aa0a6','#6b7280']
+];
+const ROTATE_ICON = 'M17.65,6.35 C16.2,4.9 14.21,4 12,4 c-4.42,0 -7.99,3.58 -7.99,8s3.57,8 7.99,8 c3.73,0 6.84,-2.55 7.73,-6h-2.08 c-0.82,2.33 -3.04,4 -5.65,4 -3.31,0 -6,-2.69 -6,-6s2.69,-6 6,-6 c1.66,0 3.14,0.69 4.22,1.78 L13,11h7V4 L17.65,6.35z';
+const COPY_ICON = 'M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h12v14z';
+const TRASH_ICON = 'M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z';
+const THEMES = {
+  maps: {
+    name:'Google Maps',
+    bg:'#f2f1ec', grid:'#dad7cf', pinStroke:'#c9c4bb',
+    roadFill:'#ffffff', roadCase:'#d8d3ca',
+    riverFill:'#a9d6fb', riverCase:'#8fc3ec',
+    houseFill:'#f1eee7', houseStroke:'#d6d1c6',
+    buildingFill:'#e6e2d9', buildingStroke:'#cdc8bb',
+    parkFill:'#c8e6c0', parkStroke:'#aed8a4', parkPath:'#efe8d5',
+    pondFill:'#a9d6fb', pondStroke:'#8bc2ee', pondHi:'#bfe0fc',
+    treeCanopy:'#9ED36A', treeTrunk:'#965353', treeFruit:'#EC5564',
+    xwalkFill:'#ffffff', xwalkStroke:'#b8b2a6',
+    lampPole:'#219653', lampHead:'#f2994a', lampHeadStroke:'#f2c94c',
+    labelRoad:'#70757a', labelArea:'#4c8a4c'
+  },
+  gray: {
+    name:'Xám công nghiệp',
+    bg:'#e9eaeb', grid:'#d2d4d6', pinStroke:'#b4b8bc',
+    roadFill:'#b2b7bc', roadCase:'#a2a7ac',
+    riverFill:'#c2d3de', riverCase:'#adc1cd',
+    houseFill:'#dcdee0', houseStroke:'#c6c9cc',
+    buildingFill:'#cfd2d5', buildingStroke:'#b9bdc1',
+    parkFill:'#dee1dd', parkStroke:'#c9cdc8', parkPath:'#e9ebeb',
+    pondFill:'#c2d3de', pondStroke:'#adc1cd', pondHi:'#d2e0ea',
+    treeCanopy:'#b3c2a8', treeTrunk:'#9a8d84', treeFruit:'#d99a94',
+    xwalkFill:'#e8eaec', xwalkStroke:'#969ba0',
+    lampPole:'#8ba398', lampHead:'#d9b28c', lampHeadStroke:'#d3c9a2',
+    labelRoad:'#7d838a', labelArea:'#6d7d6e'
+  }
+};
+let themeName = 'maps';
+const C = k => THEMES[themeName][k];
+const PIN_PATH = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z';
+const GLYPHS = {
+  home:'<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>',
+  park:'<path d="M17 12h2L12 2 5.05 12H7l-3.9 6h6.92v4h3.96v-4H21l-4-6z"/>',
+  hospital:'<path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-4v-4H5v-4h4V5h4v4h4v4z"/>',
+  school:'<path d="M5 13.18v4L12 21l7-3.82v-4L12 17l-7 3.82zM12 3L1 9l11 6 9-4.91V17h2V9L12 3z"/>',
+  restaurant:'<path d="M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z"/>',
+  mall:'<path d="M19 6h-2c0-2.76-2.24-5-5-5S7 3.24 7 6H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-7-3c1.66 0 3 1.34 3 3H9c0-1.66 1.34-3 3-3zm0 10c-1.66 0-3-1.34-3-3h2c0 .55.45 1 1 1s1-.45 1-1h2c0 1.66-1.34 3-3 3z"/>',
+  bank:'<path d="M4 10h3v7H4zM10.5 10h3v7h-3zM2 19h20v3H2zM17 10h3v7h-3zM12 1L2 6v2h20V6z"/>',
+  truck:'<path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/>',
+  cafe:'<path d="M20 3H4v10c0 2.21 1.79 4 4 4h6c2.21 0 4-1.79 4-4v-3h2c1.11 0 2-.89 2-2V5c0-1.11-.89-2-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z"/>',
+  star:'<path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>'
+};
+const GLYPH_LIST = [
+  ['home','Nhà'], ['park','Công viên'], ['hospital','Bệnh viện'], ['school','Trường học'], ['restaurant','Nhà hàng'],
+  ['mall','Cửa hàng'], ['bank','Ngân hàng'], ['truck','Kho / Giao hàng'], ['cafe','Cà phê'], ['star','Địa điểm']
+];
+const PIN_COLORS = ['#EA4335','#F29900','#FBBC04','#34A853','#00897B','#4285F4','#7B1FA2','#E91E63','#8D6E63','#5F6368'];
+
+let items = [], nextId = 1, sel = null;
+let zoom = 1, tx = 0, ty = 0;
+let undoStack = [], redoStack = [];
+let gesture = null;
+let gridOn = true;
+const els = new Map();
+
+function el(tag, attrs){
+  const n = document.createElementNS(NS, tag);
+  if (attrs) for (const k in attrs) n.setAttribute(k, attrs[k]);
+  return n;
+}
+const snap = v => gridOn ? Math.round(v/10)*10 : Math.round(v);
+const snap2 = v => Math.round(v/2)*2;
+const S15  = v => gridOn ? Math.round(v/15)*15 : Math.round(v);
+
+const DEFAULTS = {
+  road:{w:26,soft:0.5},
+  house:{w:60,h:44}, 'house-town':{w:28,h:52},
+  'house-l':{w:70,h:60}, 'house-t':{w:70,h:60}, 'house-u':{w:70,h:60},
+  'house-trap':{w:64,h:52}, 'house-para':{w:64,h:52},
+  building:{w:92,h:68}, 'building-l':{w:110,h:90}, 'building-long':{w:150,h:42},
+  park:{w:220,h:140}, pond:{w:120,h:78}, river:{w:34,soft:0.5},
+  tree:{r:11}, car:{}, lamp:{}, crosswalk:{}, pin:{icon:'home',color:'#4285F4',size:1.4},
+  'label-road':{size:11,text:'Đường mới'}, 'label-area':{size:14,text:'Khu vực mới'}
+};
+function createItem(type, x, y){
+  const it = { id: nextId++, type, x: Math.round(x), y: Math.round(y), rot: 0 };
+  Object.assign(it, DEFAULTS[type] || {});
+  if (type === 'road'){ it.pts = [[snap(x-80),snap(y)],[snap(x+80),snap(y)]]; }
+  if (type === 'river'){ it.pts = [[snap(x-110),snap(y)],[snap(x+110),snap(y)]]; }
+  if (type === 'car'){ it.color = CARCOLORS[Math.floor(Math.random()*CARCOLORS.length)][0]; }
+  return it;
+}
+function byId(id){ return items.find(i => i.id === id); }
+function snapshot(){ return JSON.stringify(items); }
+
+/* ---------- vẽ hình ---------- */
+const SHAPES = {
+  'house-l':  [[0,0],[0.45,0],[0.45,0.62],[1,0.62],[1,1],[0,1]],
+  'house-t':  [[0,0],[1,0],[1,0.38],[0.68,0.38],[0.68,1],[0.32,1],[0.32,0.38],[0,0.38]],
+  'house-u':  [[0,0],[0.32,0],[0.32,0.6],[0.68,0.6],[0.68,0],[1,0],[1,1],[0,1]],
+  'house-trap':[[0.18,0],[0.82,0],[1,1],[0,1]],
+  'house-para':[[0.16,0],[1,0],[0.84,1],[0,1]],
+  'building-l':[[0,0],[0.45,0],[0.45,0.62],[1,0.62],[1,1],[0,1]]
+};
+function polyPath(pts, w, h){
+  return pts.map((p,i) => (i?'L':'M') + ((p[0]-0.5)*w).toFixed(2) + ',' + ((p[1]-0.5)*h).toFixed(2)).join('') + 'Z';
+}
+function ptsPath(pts){
+  return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+','+p[1].toFixed(2)).join('')+'Z';
+}
+function distToPolyline(px,py,pts){
+  let best = 1e9;
+  for (let i=0;i<pts.length-1;i++){
+    const ax=pts[i][0], ay=pts[i][1], dx=pts[i+1][0]-ax, dy=pts[i+1][1]-ay;
+    const L2 = dx*dx+dy*dy || 1;
+    let t = ((px-ax)*dx+(py-ay)*dy)/L2;
+    t = Math.max(0, Math.min(1, t));
+    best = Math.min(best, Math.hypot(px-ax-t*dx, py-ay-t*dy));
+  }
+  return best;
+}
+const VERTEX_ITEMS = new Set(['house','house-town','house-l','house-t','house-u','house-trap','house-para','building','building-l','building-long','park']);
+function convertToPts(it){
+  if (it.type === 'park' && !it.pts){
+    it.pts = flattenSegs(PARK_BLOB, 10).map(p=>[p[0]*it.w, p[1]*it.h]);
+    return;
+  }
+  const sh = SHAPES[it.type];
+  if (sh) it.pts = sh.map(p=>[(p[0]-0.5)*it.w,(p[1]-0.5)*it.h]);
+  else it.pts = [[-it.w/2,-it.h/2],[it.w/2,-it.h/2],[it.w/2,it.h/2],[-it.w/2,it.h/2]];
+}
+const PARK_BLOB = [
+  ['M',-0.5,0],
+  ['C',-0.5,-0.333,-0.222,-0.5,0.056,-0.467],
+  ['C',0.333,-0.433,0.5,-0.2,0.472,0.067],
+  ['C',0.444,0.333,0.222,0.5,-0.056,0.483],
+  ['C',-0.306,0.467,-0.5,0.267,-0.5,0],
+  ['Z']
+];
+const PARK_PATHS = [
+  [['M',-0.472,-0.067],['C',-0.222,-0.133,0.111,-0.1,0.444,-0.167]],
+  [['M',-0.167,-0.433],['C',-0.139,-0.133,-0.194,0.2,-0.153,0.467]]
+];
+function scaleSegs(segs,w,h){
+  return segs.map(s => s[0]==='Z' ? 'Z' : s[0]+' '+s.slice(1).map((v,i)=>((i%2 ? v*h : v*w)).toFixed(2)).join(',')).join(' ');
+}
+function flattenSegs(segs, per){
+  per = per || 8;
+  const out = [];
+  let cur = null;
+  segs.forEach(s => {
+    if (s[0] === 'M') cur = [s[1], s[2]];
+    else if (s[0] === 'C'){
+      for (let i=1;i<=per;i++){
+        const t = i/per, u = 1-t;
+        out.push([
+          u*u*u*cur[0] + 3*u*u*t*s[1] + 3*u*t*t*s[3] + t*t*t*s[5],
+          u*u*u*cur[1] + 3*u*u*t*s[2] + 3*u*t*t*s[4] + t*t*t*s[6]
+        ]);
+      }
+      cur = [s[5], s[6]];
+    }
+  });
+  return out;
+}
+function segCtrl(pts, soft, i){
+  const k = (soft == null ? 0.5 : soft)/3;
+  const a = pts[i], b = pts[i+1];
+  const p0 = pts[i-1] || a, p3 = pts[i+2] || b;
+  return [a, [a[0]+(b[0]-p0[0])*k, a[1]+(b[1]-p0[1])*k], [b[0]-(p3[0]-a[0])*k, b[1]-(p3[1]-a[1])*k], b];
+}
+function segMid(pts, soft, i){
+  const s = segCtrl(pts, soft, i);
+  return [(s[0][0]+3*s[1][0]+3*s[2][0]+s[3][0])/8, (s[0][1]+3*s[1][1]+3*s[2][1]+s[3][1])/8];
+}
+function roadPath(it){
+  const p = it.pts;
+  if (p.length === 2) return 'M' + p[0][0] + ',' + p[0][1] + ' L' + p[1][0] + ',' + p[1][1];
+  let d = 'M' + p[0][0] + ',' + p[0][1];
+  for (let i=0;i<p.length-1;i++){
+    const s = segCtrl(p, it.soft, i);
+    d += 'C' + s[1][0].toFixed(2) + ',' + s[1][1].toFixed(2) + ' ' + s[2][0].toFixed(2) + ',' + s[2][1].toFixed(2) + ' ' + s[3][0] + ',' + s[3][1];
+  }
+  return d;
+}
+function roadSamples(it, n){
+  const out = [];
+  for (let i=0;i<it.pts.length-1;i++){
+    const s = segCtrl(it.pts, it.soft, i);
+    for (let j=(i===0?0:1);j<=n;j++){
+      const t = j/n, u = 1-t;
+      out.push([
+        u*u*u*s[0][0] + 3*u*u*t*s[1][0] + 3*u*t*t*s[2][0] + t*t*t*s[3][0],
+        u*u*u*s[0][1] + 3*u*u*t*s[1][1] + 3*u*t*t*s[2][1] + t*t*t*s[3][1]
+      ]);
+    }
+  }
+  return out;
+}
+function normalizeRoad(it){
+  if (!it.pts){
+    it.pts = [[it.x1||0, it.y1||0], [it.x2||0, it.y2||0]];
+    if (it.bend){
+      const mx = (it.x1+it.x2)/2, my = (it.y1+it.y2)/2;
+      const dx = it.x2-it.x1, dy = it.y2-it.y1, L = Math.hypot(dx,dy)||1;
+      it.pts.splice(1, 0, [mx + (-dy/L)*it.bend/2, my + (dx/L)*it.bend/2]);
+    }
+    delete it.x1; delete it.y1; delete it.x2; delete it.y2; delete it.bend;
+  }
+  if (it.soft == null) it.soft = 0.5;
+}
+function shapeGroup(it){
+  const g = el('g', { transform: `translate(${it.x},${it.y}) rotate(${it.rot||0})` });
+  switch(it.type){
+    case 'park': {
+      if (it.pts){
+        g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('parkFill'),stroke:C('parkStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
+      } else {
+        g.appendChild(el('path',{d:scaleSegs(PARK_BLOB,it.w,it.h),fill:C('parkFill'),stroke:C('parkStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
+        const pw = Math.max(3.5, it.w*0.024);
+        PARK_PATHS.forEach(pp => {
+          g.appendChild(el('path',{d:scaleSegs(pp,it.w,it.h),fill:'none',stroke:C('parkPath'),'stroke-width':pw,'stroke-linecap':'round'}));
+        });
+      }
+      break;
+    }
+    case 'pond': {
+      g.appendChild(el('ellipse',{rx:it.w/2,ry:it.h/2,fill:C('pondFill'),stroke:C('pondStroke'),'stroke-width':1.5}));
+      g.appendChild(el('ellipse',{cx:-it.w*0.12,cy:-it.h*0.08,rx:it.w*0.3,ry:it.h*0.22,fill:C('pondHi')}));
+      break;
+    }
+    case 'house': case 'house-town':
+      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('houseFill'),stroke:C('houseStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:C('houseFill'),stroke:C('houseStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
+      break;
+    case 'house-l': case 'house-t': case 'house-u': case 'house-trap': case 'house-para': case 'building-l': {
+      const big = it.type === 'building-l';
+      const d = it.pts ? ptsPath(it.pts) : polyPath(SHAPES[it.type],it.w,it.h);
+      g.appendChild(el('path',{d,fill:big?C('buildingFill'):C('houseFill'),stroke:big?C('buildingStroke'):C('houseStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      break;
+    }
+    case 'label-road': case 'label-area': {
+      const area = it.type === 'label-area';
+      const s = it.size;
+      const t = el('text',{x:0,y:s*0.35,'text-anchor':'middle','font-size':s,fill:area?C('labelArea'):C('labelRoad'),stroke:'#ffffff','stroke-width':3,'paint-order':'stroke','stroke-linejoin':'round','font-family':'Segoe UI, Arial, sans-serif','font-weight':area?600:500,'letter-spacing':area?0:1.2});
+      t.textContent = it.text;
+      g.appendChild(t);
+      break;
+    }
+    case 'building': case 'building-long':
+      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('buildingFill'),stroke:C('buildingStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:C('buildingFill'),stroke:C('buildingStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
+      break;
+    case 'tree': {
+      [[0,-0.28,0.55],[-0.42,-0.15,0.38],[0.42,-0.15,0.38],[-0.22,-0.55,0.33],[0.22,-0.55,0.33],[0,-0.6,0.3]].forEach(c => {
+        g.appendChild(el('circle',{cx:(c[0]*it.r).toFixed(2),cy:(c[1]*it.r).toFixed(2),r:(c[2]*it.r).toFixed(2),fill:C('treeCanopy')}));
+      });
+      g.appendChild(el('rect',{x:(-0.07*it.r).toFixed(2),y:(-0.05*it.r).toFixed(2),width:(0.14*it.r).toFixed(2),height:(0.85*it.r).toFixed(2),rx:(0.05*it.r).toFixed(2),fill:C('treeTrunk')}));
+      [[-0.28,-0.32],[0.24,-0.5],[0.34,-0.18],[-0.12,-0.62]].forEach(p => {
+        g.appendChild(el('circle',{cx:(p[0]*it.r).toFixed(2),cy:(p[1]*it.r).toFixed(2),r:Math.max(1.2,0.09*it.r).toFixed(2),fill:C('treeFruit')}));
+      });
+      break;
+    }
+    case 'lamp': {
+      const pw = 1.68;
+      g.appendChild(el('path',{d:'M-1.26,0 L1.26,0 L0.42,-5.04 L-0.42,-5.04 Z',fill:C('lampPole')}));
+      g.appendChild(el('line',{x1:0,y1:-4.62,x2:0,y2:-21.42,stroke:C('lampPole'),'stroke-width':pw,'stroke-linecap':'round'}));
+      g.appendChild(el('line',{x1:-5.04,y1:-18.06,x2:5.04,y2:-18.06,stroke:C('lampPole'),'stroke-width':pw,'stroke-linecap':'round'}));
+      g.appendChild(el('line',{x1:-5.04,y1:-20.16,x2:-5.04,y2:-18.06,stroke:C('lampPole'),'stroke-width':pw,'stroke-linecap':'round'}));
+      g.appendChild(el('line',{x1:5.04,y1:-20.16,x2:5.04,y2:-18.06,stroke:C('lampPole'),'stroke-width':pw,'stroke-linecap':'round'}));
+      g.appendChild(el('line',{x1:-1.68,y1:-16.38,x2:1.68,y2:-16.38,stroke:C('lampPole'),'stroke-width':pw,'stroke-linecap':'round'}));
+      [[-6.72,-23.52],[-1.68,-25.2],[3.36,-23.52]].forEach(p => {
+        g.appendChild(el('rect',{x:p[0],y:p[1],width:3.36,height:3.36,rx:1.68,fill:C('lampHead'),stroke:C('lampHeadStroke'),'stroke-width':0.84}));
+      });
+      break;
+    }
+    case 'crosswalk': {
+      for (let i=0;i<5;i++){
+        g.appendChild(el('rect',{x:-15+i*6.4,y:-16,width:3.6,height:32,rx:1,fill:C('xwalkFill'),stroke:C('xwalkStroke'),'stroke-width':0.7}));
+      }
+      break;
+    }
+    case 'pin': {
+      const ps = it.size || 1.4;
+      const pg = el('g',{transform:'translate('+(-12*ps).toFixed(2)+','+(-22*ps).toFixed(2)+') scale('+ps+')'});
+      pg.appendChild(el('path',{d:PIN_PATH,fill:'#ffffff',stroke:C('pinStroke'),'stroke-width':0.8,filter:'url(#bsh)'}));
+      pg.appendChild(el('circle',{cx:12,cy:9,r:5.4,fill:it.color}));
+      const gi = el('g',{transform:'translate(8.5,6.5) scale(0.29)'});
+      gi.innerHTML = '<g fill="#ffffff">'+(GLYPHS[it.icon]||GLYPHS.home)+'</g>';
+      pg.appendChild(gi);
+      g.appendChild(pg);
+      break;
+    }
+    case 'car':
+      g.appendChild(el('rect',{x:-11,y:-5.5,width:22,height:11,rx:3,fill:it.color,stroke:'rgba(0,0,0,0.28)','stroke-width':1}));
+      g.appendChild(el('rect',{x:1,y:-3.6,width:4.5,height:7.2,rx:1,fill:'rgba(255,255,255,0.6)'}));
+      break;
+  }
+  return g;
+}
+function renderRoad(it){
+  normalizeRoad(it);
+  const rec = els.get(it.id);
+  if (rec){ if (rec.casing) rec.casing.remove(); if (rec.main) rec.main.remove(); }
+  const d = roadPath(it);
+  const casing = el('path',{d,fill:'none',stroke:C('roadCase'),'stroke-width':it.w+6,'stroke-linecap':'round','stroke-linejoin':'round'});
+  layers.casing.appendChild(casing);
+  const g = el('g',{'data-id':it.id});
+  g.appendChild(el('path',{d,fill:'none',stroke:C('roadFill'),'stroke-width':it.w,'stroke-linecap':'round','stroke-linejoin':'round'}));
+  layers.fill.appendChild(g);
+  els.set(it.id,{main:g,casing});
+}
+function renderRiver(it){
+  normalizeRoad(it);
+  const rec = els.get(it.id);
+  if (rec){ if (rec.casing) rec.casing.remove(); if (rec.main) rec.main.remove(); }
+  const d = roadPath(it);
+  const casing = el('path',{d,fill:'none',stroke:C('riverCase'),'stroke-width':it.w+5,'stroke-linecap':'round','stroke-linejoin':'round'});
+  layers.ground.appendChild(casing);
+  const g = el('g',{'data-id':it.id});
+  g.appendChild(el('path',{d,fill:'none',stroke:C('riverFill'),'stroke-width':it.w,'stroke-linecap':'round','stroke-linejoin':'round'}));
+  layers.ground.appendChild(g);
+  els.set(it.id,{main:g,casing});
+}
+function renderItem(it){
+  if (it.type === 'road'){ renderRoad(it); return; }
+  if (it.type === 'river'){ renderRiver(it); return; }
+  const rec = els.get(it.id);
+  if (rec) rec.main.remove();
+  const g = shapeGroup(it);
+  g.setAttribute('data-id', it.id);
+  (it.type === 'park' || it.type === 'pond' ? layers.ground : layers.items).appendChild(g);
+  els.set(it.id,{main:g});
+}
+function renderAll(){
+  [layers.ground, layers.casing, layers.fill, layers.items].forEach(l => l.innerHTML = '');
+  els.clear();
+  items.forEach(renderItem);
+}
+
+/* ---------- khung chọn ---------- */
+function bboxOf(it){
+  switch(it.type){
+    case 'road': case 'river': {
+      const Sp = roadSamples(it, 24);
+      const pad = it.w/2+2;
+      let bx0=1e9,by0=1e9,bx1=-1e9,by1=-1e9;
+      Sp.forEach(p => {
+        bx0=Math.min(bx0,p[0]); bx1=Math.max(bx1,p[0]);
+        by0=Math.min(by0,p[1]); by1=Math.max(by1,p[1]);
+      });
+      if (it.pts.length === 2){
+        const ax=it.pts[0][0], ay=it.pts[0][1];
+        const ddx=it.pts[1][0]-ax, ddy=it.pts[1][1]-ay, Ln=Math.hypot(ddx,ddy)||1;
+        return {cx:ax+ddx/2, cy:ay+ddy/2, w:Ln+it.w+4, h:it.w+4, rot:Math.atan2(ddy,ddx)*180/Math.PI, handles:['ends','width','add','rotate']};
+      }
+      return {cx:(bx0+bx1)/2, cy:(by0+by1)/2, w:(bx1-bx0)+pad*2, h:(by1-by0)+pad*2, rot:0, handles:['ends','width','add','rotate']};
+    }
+    case 'tree':
+      return {cx:it.x,cy:it.y,w:it.r*1.7,h:it.r*1.8,rot:0,handles:['scale']};
+    case 'car':
+      return {cx:it.x,cy:it.y,w:22,h:11,rot:it.rot||0,handles:['rotate']};
+    case 'crosswalk':
+      return {cx:it.x,cy:it.y,w:31,h:32,rot:it.rot||0,handles:['rotate']};
+    case 'lamp':
+      return {cx:it.x,cy:it.y-12.6,w:16,h:27,rot:0,handles:['rotate']};
+    case 'pin': {
+      const ps = it.size || 1.4;
+      return {cx:it.x,cy:it.y-11*ps,w:14*ps+2.5,h:22*ps+1.5,rot:0,handles:['scale']};
+    }
+    case 'label-road': case 'label-area': {
+      const w = Math.max(34, it.text.length*it.size*0.62);
+      return {cx:it.x,cy:it.y,w,h:it.size*1.7,rot:it.rot||0,handles:['rotate','scale']};
+    }
+    default: {
+      if (it.pts){
+        let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+        it.pts.forEach(p=>{x0=Math.min(x0,p[0]);x1=Math.max(x1,p[0]);y0=Math.min(y0,p[1]);y1=Math.max(y1,p[1]);});
+        return {cx:it.x+(x0+x1)/2,cy:it.y+(y0+y1)/2,w:Math.max(10,x1-x0),h:Math.max(10,y1-y0),rot:it.rot||0,handles:['rotate','resize']};
+      }
+      return {cx:it.x,cy:it.y,w:it.w,h:it.h,rot:it.rot||0,handles:['rotate','resize']};
+    }
+  }
+}
+function makeHandle(name,x,y,inv,shape){
+  const attrs = shape==='rect'
+    ? {x:x-5.5*inv,y:y-5.5*inv,width:11*inv,height:11*inv,rx:2*inv}
+    : {cx:x,cy:y,r:5.5*inv};
+  const h = el(shape==='rect'?'rect':'circle', attrs);
+  h.setAttribute('fill','#fff');
+  h.setAttribute('stroke','#1a73e8');
+  h.setAttribute('stroke-width',1.6*inv);
+  h.setAttribute('data-handle',name);
+  return h;
+}
+function absHandle(name,x,y,inv){
+  const g = el('g',{transform:`translate(${x},${y})`,'data-handle':name});
+  g.appendChild(el('circle',{r:5.5*inv,fill:'#fff',stroke:'#1a73e8','stroke-width':1.6*inv}));
+  return g;
+}
+function addSelButtons(g, b, inv){
+  const ty = -(b.h/2 + 24*inv);
+  const mk = (name, dx, iconD, iconFill) => {
+    const h = el('g',{transform:`translate(${dx},${ty})`,'data-handle':name});
+    h.appendChild(el('circle',{r:11*inv,fill:'#fff',stroke:'#c6c6c2','stroke-width':1*inv}));
+    h.appendChild(el('path',{d:iconD,fill:iconFill,transform:`translate(${-5.4*inv},${-5.4*inv}) scale(${0.45*inv})`,'pointer-events':'none'}));
+    const ti = el('title',{}); ti.textContent = name === 'dup' ? 'Nhân đôi' : 'Xóa';
+    h.appendChild(ti);
+    g.appendChild(h);
+  };
+  mk('dup', -13.5*inv, COPY_ICON, '#5f6368');
+  mk('del', 13.5*inv, TRASH_ICON, '#d93025');
+}
+function drawOverlay(){
+  overlay.innerHTML = '';
+  const it = sel != null ? byId(sel) : null;
+  if (!it) return;
+  const b = bboxOf(it), inv = 1/zoom;
+  if (editing === it.id && it.pts){
+    const n = it.pts.length;
+    it.pts.forEach((p,i)=>{
+      const h = absHandle('vtx', it.x+p[0], it.y+p[1], inv);
+      h.setAttribute('data-index', i);
+      const ti = el('title',{}); ti.textContent = 'Kéo để rê đỉnh • Nhấp đúp để xóa';
+      h.appendChild(ti);
+      overlay.appendChild(h);
+    });
+    const m = it.type === 'river' ? n-1 : n;
+    for (let i=0;i<m;i++){
+      const a = it.pts[i], c = it.pts[(i+1)%n];
+      const h = absHandle('addv', it.x+(a[0]+c[0])/2, it.y+(a[1]+c[1])/2, inv);
+      h.setAttribute('data-index', i);
+      h.firstChild.setAttribute('r', 4*inv);
+      h.firstChild.setAttribute('stroke-dasharray', `${2.5*inv} ${2*inv}`);
+      const ti = el('title',{}); ti.textContent = 'Nhấp để thêm đỉnh';
+      h.appendChild(ti);
+      overlay.appendChild(h);
+    }
+    const bg2 = el('g',{transform:`translate(${b.cx},${b.cy}) rotate(${b.rot||0})`});
+    addSelButtons(bg2,b,inv);
+    overlay.appendChild(bg2);
+    addSizeLabel(it,b,inv);
+    return;
+  }
+  const g = el('g',{transform:`translate(${b.cx},${b.cy}) rotate(${b.rot||0})`});
+  g.appendChild(el('rect',{
+    x:-b.w/2-6*inv, y:-b.h/2-6*inv, width:b.w+12*inv, height:b.h+12*inv, rx:8*inv,
+    fill:'none', stroke:'#1a73e8','stroke-width':1.6*inv,'stroke-dasharray':`${6*inv} ${4*inv}`
+  }));
+  if (b.handles.includes('resize')){
+    [[-1,-1],[1,-1],[1,1],[-1,1]].forEach(cn => {
+      g.appendChild(makeHandle('resize', cn[0]*(b.w/2+6*inv), cn[1]*(b.h/2+6*inv), inv,'circle'));
+    });
+  }
+  if (b.handles.includes('scale')) g.appendChild(makeHandle('resize', b.w/2+6*inv, b.h/2+6*inv, inv,'circle'));
+  if (b.handles.includes('rotate')){
+    const ry = b.h/2 + (b.handles.includes('ends') ? 86 : 42)*inv;
+    g.appendChild(el('line',{x1:0,y1:b.h/2+6*inv,x2:0,y2:ry-11*inv,stroke:'#1a73e8','stroke-width':1.2*inv,'stroke-dasharray':`${3*inv} ${3*inv}`,'pointer-events':'none'}));
+    const rh = el('g',{transform:`translate(0,${ry})`,'data-handle':'rotate'});
+    rh.appendChild(el('circle',{r:11*inv,fill:'#fff',stroke:'#1a73e8','stroke-width':1.6*inv}));
+    rh.appendChild(el('path',{d:ROTATE_ICON,fill:'#1a73e8',transform:`translate(${-4.62*inv},${-4.62*inv}) scale(${0.385*inv})`,'pointer-events':'none'}));
+    const ti = el('title',{}); ti.textContent = 'Kéo để xoay';
+    rh.appendChild(ti);
+    g.appendChild(rh);
+  }
+  addSelButtons(g,b,inv);
+  overlay.appendChild(g);
+  if (b.handles.includes('ends')) addRoadHandles(it,inv);
+  addSizeLabel(it,b,inv);
+}
+function addRoadHandles(it, inv){
+  overlay.appendChild(absHandle('end1', it.pts[0][0], it.pts[0][1], inv));
+  overlay.appendChild(absHandle('end2', it.pts[it.pts.length-1][0], it.pts[it.pts.length-1][1], inv));
+  for (let i=1;i<it.pts.length-1;i++){
+    const h = el('g',{transform:`translate(${it.pts[i][0]},${it.pts[i][1]})`,'data-handle':'vtx','data-index':i});
+    h.appendChild(el('circle',{r:6*inv,fill:'#fff',stroke:'#e37400','stroke-width':1.6*inv}));
+    h.appendChild(el('circle',{r:2.2*inv,fill:'#e37400','pointer-events':'none'}));
+    const ti = el('title',{}); ti.textContent = 'Kéo để uốn • Nhấp đúp để bỏ điểm uốn';
+    h.appendChild(ti);
+    overlay.appendChild(h);
+  }
+  for (let i=0;i<it.pts.length-1;i++){
+    const m = segMid(it.pts, it.soft, i);
+    const h = el('g',{transform:`translate(${m[0].toFixed(2)},${m[1].toFixed(2)})`,'data-handle':'add','data-index':i});
+    h.appendChild(el('circle',{r:4.5*inv,fill:'#fff',stroke:'#1a73e8','stroke-width':1.3*inv,'stroke-dasharray':`${2.5*inv} ${2*inv}`}));
+    h.appendChild(el('path',{d:'M'+(-1.8*inv)+',0 H'+(1.8*inv)+' M0,'+(-1.8*inv)+' V'+(1.8*inv),stroke:'#1a73e8','stroke-width':1.1*inv,'pointer-events':'none'}));
+    const ti = el('title',{}); ti.textContent = 'Kéo ra để thêm chỗ uốn';
+    h.appendChild(ti);
+    overlay.appendChild(h);
+  }
+  const S = roadSamples(it, 48);
+  const mi = Math.floor(S.length/2);
+  const a = S[Math.max(0,mi-1)], b2 = S[Math.min(S.length-1,mi+1)];
+  const dx = b2[0]-a[0], dy = b2[1]-a[1], L = Math.hypot(dx,dy)||1;
+  const c = S[mi];
+  const wx = c[0] + (-dy/L)*(it.w/2), wy = c[1] + (dx/L)*(it.w/2);
+  overlay.appendChild(el('line',{x1:c[0],y1:c[1],x2:wx,y2:wy,stroke:'#1a73e8','stroke-width':1.2*inv,'stroke-dasharray':`${4*inv} ${3*inv}`,'pointer-events':'none'}));
+  const wh = absHandle('width',wx,wy,inv);
+  wh.firstChild.setAttribute('r',7*inv);
+  overlay.appendChild(wh);
+}
+function addSizeLabel(it, b, inv){
+  if (!(gesture && gesture.id === it.id && (gesture.type === 'width' || gesture.type === 'resize'))) return;
+  let txt = '';
+  if (gesture.type === 'width') txt = 'rộng ' + it.w + ' px';
+  else if (it.type === 'label-road' || it.type === 'label-area') txt = 'cỡ chữ ' + it.size;
+  else if (it.type === 'tree') txt = '⌀ ' + (it.r*2);
+  else if (it.type === 'pin') txt = 'cỡ ' + Math.round((it.size||1.4)/1.4*100) + '%';
+  else txt = it.w + ' × ' + it.h;
+  const t = el('text',{x:b.cx, y:b.cy + b.h/2 + 26*inv, 'text-anchor':'middle','font-size':12*inv,'font-weight':600,fill:'#1a73e8','font-family':'Segoe UI,sans-serif'});
+  t.textContent = txt;
+  overlay.appendChild(t);
+}
+let editing = null;
+let editHintShown = false;
+let roadHintShown = false;
+function select(id){
+  sel = id; editing = null; drawOverlay(); syncToolbar(); syncProps();
+  if (id != null && !roadHintShown){
+    const it = byId(id);
+    if (it && it.type === 'road'){
+      toast('Đường: kéo dấu + để thêm chỗ uốn, chấm cam để uốn, 2 chấm đầu = dài, chấm cạnh = rộng');
+      roadHintShown = true;
+    }
+  }
+}
+
+/* ---------- biến đổi khung nhìn ---------- */
+function applyTransform(){
+  world.setAttribute('transform', `translate(${tx},${ty}) scale(${zoom})`);
+  zoomLabel.textContent = Math.round(zoom*100) + '%';
+  drawOverlay();
+}
+function setZoom(nz){
+  const r = board.getBoundingClientRect();
+  const mx = r.width/2, my = r.height/2;
+  const k = nz/zoom;
+  tx = mx - (mx-tx)*k; ty = my - (my-ty)*k;
+  zoom = Math.min(4, Math.max(0.25, nz));
+  applyTransform();
+}
+function toWorldPt(e){
+  const r = board.getBoundingClientRect();
+  return { x:(e.clientX-r.left-tx)/zoom, y:(e.clientY-r.top-ty)/zoom };
+}
+
+/* ---------- tương tác ---------- */
+function startMove(e, it){
+  gesture = { type:'move', id:it.id, before:snapshot(), orig:JSON.parse(JSON.stringify(it)), start:toWorldPt(e), moved:false };
+}
+function startHandle(e, name, hElm){
+  const it = byId(sel); if (!it) return;
+  if (name === 'dup'){ duplicateSel(); return; }
+  if (name === 'del'){ deleteSel(); return; }
+  const before = snapshot();
+  const w = toWorldPt(e);
+  if (name === 'rotate' && (it.type === 'road' || it.type === 'river')){
+    const p = toWorldPt(e);
+    let cx = 0, cy = 0;
+    it.pts.forEach(q => { cx += q[0]; cy += q[1]; });
+    cx /= it.pts.length; cy /= it.pts.length;
+    gesture = { type:'rrotate', id:it.id, before, cx, cy, rpts:JSON.parse(JSON.stringify(it.pts)),
+      a0:Math.atan2(p.y-cy, p.x-cx), moved:false };
+  } else if (name === 'rotate'){
+    gesture = { type:'rotate', id:it.id, before, rot0:it.rot||0, cx:it.x, cy:it.y, a0:Math.atan2(w.y-it.y, w.x-it.x), moved:false };
+  } else if (name === 'resize'){
+    const p = toWorldPt(e);
+    let lx = p.x-it.x, ly = p.y-it.y;
+    if (it.rot){ const rad = -it.rot*Math.PI/180, c = Math.cos(rad), s = Math.sin(rad); const nx = lx*c-ly*s, ny = lx*s+ly*c; lx = nx; ly = ny; }
+    gesture = { type:'resize', id:it.id, before, orig:JSON.parse(JSON.stringify(it)),
+      w0:it.w, h0:it.h, r0:it.r || it.size || 1.4,
+      d0x:Math.max(1,Math.abs(lx)), d0y:Math.max(1,Math.abs(ly)), d0r:Math.max(1,Math.hypot(lx,ly)), moved:false };
+  } else if (name === 'width'){
+    const p = toWorldPt(e);
+    gesture = { type:'width', id:it.id, before, w0:it.w, d0:Math.max(1, distToPolyline(p.x,p.y,roadSamples(it,48))), moved:false };
+  } else if (name === 'vtx'){
+    gesture = { type:'vtx', id:it.id, index:+hElm.getAttribute('data-index'), rel:(it.type !== 'road' && it.type !== 'river'), before, moved:false };
+  } else if (name === 'add'){
+    const i = +hElm.getAttribute('data-index');
+    const m = segMid(it.pts, it.soft, i);
+    it.pts.splice(i+1, 0, [snap(m[0]), snap(m[1])]);
+    renderItem(it);
+    gesture = { type:'vtx', id:it.id, index:i+1, rel:false, before, moved:true };
+    drawOverlay();
+  } else if (name === 'addv'){
+    const i = +hElm.getAttribute('data-index');
+    const n = it.pts.length;
+    const a = it.pts[i], c = it.pts[(i+1)%n];
+    const np = [snap(it.x+(a[0]+c[0])/2)-it.x, snap(it.y+(a[1]+c[1])/2)-it.y];
+    it.pts.splice(i+1, 0, np);
+    renderItem(it);
+    gesture = { type:'vtx', id:it.id, index:i+1, before, moved:true };
+    drawOverlay();
+  } else if (name === 'end1' || name === 'end2'){
+    gesture = { type:'end', id:it.id, which:name==='end1'?1:2, before, moved:false };
+  }
+}
+board.addEventListener('pointerdown', e => {
+  if (e.button === 2) return;
+  const h = e.target.closest ? e.target.closest('[data-handle]') : null;
+  if (h){ startHandle(e, h.getAttribute('data-handle'), h); board.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+  const gp = e.target.closest ? e.target.closest('g[data-id]') : null;
+  if (gp){
+    const it = byId(+gp.getAttribute('data-id'));
+    if (it){ select(it.id); startMove(e, it); board.setPointerCapture(e.pointerId); e.preventDefault(); return; }
+  }
+  gesture = { type:'pan', sx:e.clientX, sy:e.clientY, tx0:tx, ty0:ty, moved:false };
+  board.setPointerCapture(e.pointerId);
+  board.classList.add('panning');
+  e.preventDefault();
+});
+board.addEventListener('pointermove', e => {
+  if (!gesture) return;
+  const w = toWorldPt(e);
+  if (gesture.type === 'pan'){
+    tx = gesture.tx0 + e.clientX - gesture.sx;
+    ty = gesture.ty0 + e.clientY - gesture.sy;
+    if (Math.abs(e.clientX-gesture.sx)+Math.abs(e.clientY-gesture.sy) > 3) gesture.moved = true;
+    applyTransform();
+    return;
+  }
+  const it = byId(gesture.id); if (!it) return;
+  if (gesture.type === 'move'){
+    const o = gesture.orig, dx = w.x-gesture.start.x, dy = w.y-gesture.start.y;
+    if (Math.abs(dx)+Math.abs(dy) > 2) gesture.moved = true;
+    if (it.type === 'road' || it.type === 'river'){
+      const ddx = snap(o.pts[0][0]+dx)-o.pts[0][0], ddy = snap(o.pts[0][1]+dy)-o.pts[0][1];
+      it.pts = o.pts.map(p=>[p[0]+ddx, p[1]+ddy]);
+    } else {
+      it.x = snap(o.x+dx); it.y = snap(o.y+dy);
+    }
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'rrotate'){
+    const a = Math.atan2(w.y-gesture.cy, w.x-gesture.cx);
+    let da = a - gesture.a0;
+    if (!e.shiftKey){
+      const r0 = gesture.rpts;
+      const th0 = Math.atan2(r0[r0.length-1][1]-r0[0][1], r0[r0.length-1][0]-r0[0][0]);
+      let th = th0 + da;
+      th = gridOn ? Math.round(th/(Math.PI/12))*(Math.PI/12) : Math.round(th*180/Math.PI)*(Math.PI/180);
+      da = th - th0;
+    }
+    const cs = Math.cos(da), sn = Math.sin(da);
+    it.pts = gesture.rpts.map(p => [
+      Math.round(gesture.cx + (p[0]-gesture.cx)*cs - (p[1]-gesture.cy)*sn),
+      Math.round(gesture.cy + (p[0]-gesture.cx)*sn + (p[1]-gesture.cy)*cs)
+    ]);
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'rotate'){
+    const a = Math.atan2(w.y-gesture.cx, w.x-gesture.cx);
+    const r = gesture.rot0 + (a-gesture.a0)*180/Math.PI;
+    it.rot = e.shiftKey ? Math.round(r) : S15(r);
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'resize'){
+    const o = gesture.orig;
+    let dx = w.x-o.x, dy = w.y-o.y;
+    if (o.rot){
+      const rad = -o.rot*Math.PI/180, c = Math.cos(rad), s = Math.sin(rad);
+      const nx = dx*c - dy*s, ny = dx*s + dy*c;
+      dx = nx; dy = ny;
+    }
+    if (o.type === 'tree'){
+      it.r = Math.max(6, snap2(gesture.r0 * Math.hypot(dx,dy)/gesture.d0r));
+    } else if (o.type === 'label-road' || o.type === 'label-area'){
+      it.size = Math.max(8, snap2(gesture.r0 * Math.hypot(dx,dy)/gesture.d0r));
+    } else if (o.type === 'pin'){
+      it.size = Math.min(3, Math.max(0.7, Math.round((gesture.r0 * Math.hypot(dx,dy)/gesture.d0r)*20)/20));
+    } else {
+      it.w = Math.max(24, snap(gesture.w0 * Math.abs(dx)/gesture.d0x));
+      it.h = Math.max(24, snap(gesture.h0 * Math.abs(dy)/gesture.d0y));
+      if (o.pts){
+        const sx = Math.max(0.05, Math.abs(dx)/gesture.d0x), sy = Math.max(0.05, Math.abs(dy)/gesture.d0y);
+        it.pts = o.pts.map(p=>[p[0]*sx, p[1]*sy]);
+      }
+    }
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'end'){
+    if (gesture.which === 1) it.pts[0] = [snap(w.x), snap(w.y)];
+    else it.pts[it.pts.length-1] = [snap(w.x), snap(w.y)];
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'width'){
+    const d = distToPolyline(w.x, w.y, roadSamples(it,48));
+    it.w = Math.max(8, snap2(gesture.w0 * d/gesture.d0));
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  } else if (gesture.type === 'vtx'){
+    it.pts[gesture.index] = gesture.rel ? [snap(w.x-it.x), snap(w.y-it.y)] : [snap(w.x), snap(w.y)];
+    gesture.moved = true;
+    renderItem(it); drawOverlay();
+  }
+});
+board.addEventListener('pointerup', () => {
+  if (!gesture) return;
+  const g = gesture; gesture = null;
+  board.classList.remove('panning');
+  if (g.type === 'pan'){ if (!g.moved) select(null); }
+  else if (g.moved) commit(g.before);
+  syncProps();
+});
+board.addEventListener('pointercancel', () => {
+  gesture = null;
+  board.classList.remove('panning');
+});
+board.addEventListener('dblclick', e => {
+  const vh = e.target.closest ? e.target.closest('[data-handle="vtx"]') : null;
+  if (vh){
+    const it = editing != null ? byId(editing) : (sel != null ? byId(sel) : null);
+    if (it && it.pts){
+      const isRoad = it.type === 'road' || it.type === 'river';
+      if (it.pts.length > (isRoad ? 2 : 3)){
+        const before = snapshot();
+        it.pts.splice(+vh.getAttribute('data-index'), 1);
+        renderItem(it); drawOverlay(); commit(before);
+      }
+    }
+    return;
+  }
+  const gp = e.target.closest ? e.target.closest('g[data-id]') : null;
+  if (gp){
+    const it = byId(+gp.getAttribute('data-id'));
+    if (!it) return;
+    if (it.type === 'label-road' || it.type === 'label-area'){
+      const before = snapshot();
+      openModal('Đổi tên', it.text, v => {
+        if (v){
+          it.text = v;
+          renderItem(it); drawOverlay(); commit(before);
+        }
+      });
+    } else if (it.type === 'pin'){
+      const before = snapshot();
+      openPicker('Sửa địa danh', it, sel => {
+        it.icon = sel.icon; it.color = sel.color;
+        renderItem(it); drawOverlay(); commit(before);
+      });
+    } else if (VERTEX_ITEMS.has(it.type)){
+      select(it.id);
+      if (!it.pts) convertToPts(it);
+      editing = it.id;
+      drawOverlay();
+      if (!editHintShown){
+        toast('Đang sửa đỉnh: kéo các chấm để nắn hình • chấm đứt quãng để thêm đỉnh • nhấp đúp vào đỉnh để xóa • Esc để thoát');
+        editHintShown = true;
+      }
+    }
+    return;
+  }
+  select(null);
+});
+board.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r = board.getBoundingClientRect();
+  const mx = e.clientX-r.left, my = e.clientY-r.top;
+  const f = Math.exp(-e.deltaY*0.0012);
+  const nz = Math.min(4, Math.max(0.25, zoom*f));
+  const k = nz/zoom;
+  tx = mx-(mx-tx)*k; ty = my-(my-ty)*k; zoom = nz;
+  applyTransform();
+}, {passive:false});
+
+/* ---------- kéo thả từ khung nguyên liệu ---------- */
+board.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'copy'; });
+board.addEventListener('drop', e => {
+  e.preventDefault();
+  const type = e.dataTransfer.getData('text/plain');
+  if (!type || !DEFAULTS[type]) return;
+  const w = toWorldPt(e);
+  addItem(type, w.x, w.y);
+});
+
+/* ---------- lịch sử ---------- */
+function commit(before){
+  if (before === snapshot()) return;
+  undoStack.push(before);
+  if (undoStack.length > 150) undoStack.shift();
+  redoStack.length = 0;
+  syncToolbar(); syncProps();
+}
+function undo(){
+  if (!undoStack.length) return;
+  redoStack.push(snapshot());
+  items = JSON.parse(undoStack.pop());
+  restore();
+}
+function redo(){
+  if (!redoStack.length) return;
+  undoStack.push(snapshot());
+  items = JSON.parse(redoStack.pop());
+  restore();
+}
+function restore(){
+  renderAll();
+  if (sel != null && !byId(sel)) sel = null;
+  drawOverlay(); syncToolbar(); syncProps();
+}
+
+/* ---------- hành động ---------- */
+function addItem(type, x, y){
+  const before = snapshot();
+  const it = createItem(type, x, y);
+  items.push(it);
+  renderItem(it);
+  if (type === 'label-road' || type === 'label-area'){
+    select(it.id);
+    openModal(it.type === 'label-road' ? 'Tên đường' : 'Tên khu vực', it.text, v => {
+      if (v) it.text = v;
+      renderItem(it);
+      commit(before);
+    }, () => {
+      removeItemSilently(it);
+      select(null);
+    });
+    return;
+  }
+  if (type === 'pin'){
+    select(it.id);
+    openPicker('Địa danh', it, sel => {
+      it.icon = sel.icon; it.color = sel.color;
+      renderItem(it);
+      commit(before);
+    }, () => {
+      removeItemSilently(it);
+      select(null);
+    });
+    return;
+  }
+  select(it.id); commit(before);
+}
+function removeItemSilently(it){
+  const rec = els.get(it.id);
+  if (rec){ if (rec.casing) rec.casing.remove(); rec.main.remove(); els.delete(it.id); }
+  items = items.filter(x => x.id !== it.id);
+}
+function deleteSel(){
+  if (sel == null) return;
+  const it = byId(sel); if (!it) return;
+  const before = snapshot();
+  const rec = els.get(it.id);
+  if (rec){ if (rec.casing) rec.casing.remove(); rec.main.remove(); els.delete(it.id); }
+  items = items.filter(i => i.id !== it.id);
+  select(null); commit(before);
+}
+function duplicateSel(){
+  if (sel == null) return;
+  const it = byId(sel); if (!it) return;
+  const before = snapshot();
+  const c = JSON.parse(JSON.stringify(it));
+  c.id = nextId++;
+  if (c.type === 'road' || c.type === 'river'){ c.pts = c.pts.map(p=>[p[0]+24, p[1]+24]); }
+  else { c.x+=24; c.y+=24; }
+  items.push(c);
+  renderItem(c); select(c.id); commit(before);
+}
+function clearAll(){
+  if (!items.length) return;
+  if (!confirm('Xóa toàn bộ bản đồ? (Vẫn có thể Ctrl+Z để hoàn tác)')) return;
+  const before = snapshot();
+  items = [];
+  renderAll(); select(null); commit(before);
+  toast('Đã xóa hết — Ctrl+Z để lấy lại');
+}
+
+/* ---------- bàn phím ---------- */
+const ARROW = { ArrowLeft:[-1,0], ArrowRight:[1,0], ArrowUp:[0,-1], ArrowDown:[0,1] };
+window.addEventListener('keydown', e => {
+  if (e.target && (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA')) return;
+  if (e.ctrlKey || e.metaKey){
+    const k = e.key.toLowerCase();
+    if (k === 'z'){ e.preventDefault(); e.shiftKey ? redo() : undo(); }
+    else if (k === 'y'){ e.preventDefault(); redo(); }
+    else if (k === 'd'){ e.preventDefault(); duplicateSel(); }
+    return;
+  }
+  if (e.key === 'Escape'){ select(null); return; }
+  if (e.key === 'Delete' || e.key === 'Backspace'){
+    if (sel != null){ e.preventDefault(); deleteSel(); }
+    return;
+  }
+  const d = ARROW[e.key];
+  if (d && sel != null){
+    e.preventDefault();
+    const it = byId(sel); if (!it) return;
+    const before = snapshot();
+    const step = e.shiftKey ? 1 : 10;
+    if (it.type === 'road' || it.type === 'river'){ it.pts = it.pts.map(p=>[p[0]+d[0]*step, p[1]+d[1]*step]); }
+    else { it.x+=d[0]*step; it.y+=d[1]*step; }
+    renderItem(it); drawOverlay(); commit(before);
+  }
+});
+
+/* ---------- khung nguyên liệu ---------- */
+const PALETTE = [
+  { cat:'Đường phố',  items:[['road','Đường'],['crosswalk','Vạch sang đường'],['car','Xe hơi']] },
+  { cat:'Công trình', items:[
+    ['house','Nhà'], ['house-town','Nhà ống'], ['house-l','Nhà chữ L'], ['house-t','Nhà chữ T'],
+    ['house-u','Nhà chữ U'], ['house-trap','Nhà hình thang'], ['house-para','Nhà nghiêng'],
+    ['building','Tòa nhà'], ['building-l','Tòa nhà chữ L'], ['building-long','Tòa nhà dải']
+  ] },
+  { cat:'Cảnh quan',  items:[['park','Công viên'],['pond','Hồ nước'],['river','Sông'],['tree','Cây']] },
+  { cat:'Tiện ích',   items:[['lamp','Đèn đường']] },
+  { cat:'Địa danh',   items:[['pin','Địa danh']] },
+  { cat:'Nhãn tên',   items:[['label-road','Tên đường'],['label-area','Tên khu vực']] }
+];
+function iconFor(type){
+  const s = el('svg',{width:30,height:30});
+  if (type === 'river'){
+    const d = 'M-22,-5 Q-10,-15 2,-6 T22,-4';
+    s.appendChild(el('path',{d,fill:'none',stroke:C('riverCase'),'stroke-width':9,'stroke-linecap':'round'}));
+    s.appendChild(el('path',{d,fill:'none',stroke:C('riverFill'),'stroke-width':5.5,'stroke-linecap':'round'}));
+    s.setAttribute('viewBox','-28 -20 56 36');
+    return s;
+  }
+  let it;
+  if (type === 'road') it = { id:0, type:'road', pts:[[-24,0],[24,0]], w:14, soft:0.5 };
+  else it = createItem(type, 0, 0);
+  const b = bboxOf(it), pad = 7;
+  s.setAttribute('viewBox', `${b.cx-b.w/2-pad} ${b.cy-b.h/2-pad} ${b.w+2*pad} ${b.h+2*pad}`);
+  if (type === 'road'){
+    const d = roadPath(it);
+    s.appendChild(el('path',{d,fill:'none',stroke:C('roadCase'),'stroke-width':it.w+4,'stroke-linecap':'round'}));
+    s.appendChild(el('path',{d,fill:'none',stroke:C('roadFill'),'stroke-width':it.w,'stroke-linecap':'round'}));
+  } else {
+    s.appendChild(shapeGroup(it));
+  }
+  return s;
+}
+function buildPalette(){
+  const c = document.getElementById('palette');
+  PALETTE.forEach(cat => {
+    const h = document.createElement('div');
+    h.className = 'cat'; h.textContent = cat.cat;
+    c.appendChild(h);
+    cat.items.forEach(([type,label]) => {
+      const d = document.createElement('div');
+      d.className = 'pitem'; d.draggable = true; d.dataset.type = type;
+      d.title = 'Kéo vào bản đồ hoặc nhấp để thêm';
+      d.appendChild(iconFor(type));
+      const sp = document.createElement('span');
+      sp.textContent = label;
+      d.appendChild(sp);
+      d.addEventListener('dragstart', e => {
+        e.dataTransfer.setData('text/plain', type);
+        e.dataTransfer.effectAllowed = 'copy';
+      });
+      d.addEventListener('click', () => {
+        const r = board.getBoundingClientRect();
+        addItem(type, (r.width/2-tx)/zoom, (r.height/2-ty)/zoom);
+      });
+      c.appendChild(d);
+    });
+  });
+}
+
+/* ---------- xuất file ---------- */
+function bounds(){
+  if (!items.length) return {x:-400,y:-300,w:800,h:600};
+  let x0=1e9, y0=1e9, x1=-1e9, y1=-1e9;
+  items.forEach(it => {
+    const b = bboxOf(it);
+    const rad = (b.rot||0)*Math.PI/180, cs = Math.cos(rad), sn = Math.sin(rad);
+    [[-b.w/2,-b.h/2],[b.w/2,-b.h/2],[b.w/2,b.h/2],[-b.w/2,b.h/2]].forEach(c => {
+      const wx = b.cx + c[0]*cs - c[1]*sn;
+      const wy = b.cy + c[0]*sn + c[1]*cs;
+      x0 = Math.min(x0, wx); x1 = Math.max(x1, wx);
+      y0 = Math.min(y0, wy); y1 = Math.max(y1, wy);
+    });
+  });
+  return {x:x0, y:y0, w:x1-x0, h:y1-y0};
+}
+function shadowDefs(){
+  const d = el('defs',{});
+  const f = el('filter',{id:'bsh',x:'-40%',y:'-40%',width:'180%',height:'180%'});
+  f.appendChild(el('feDropShadow',{dx:0,dy:1.2,stdDeviation:1.2,'flood-color':'#3c4043','flood-opacity':0.28}));
+  d.appendChild(f);
+  return d;
+}
+function exportSVGString(){
+  const b = bounds(), pad = 50;
+  const out = el('svg',{
+    viewBox:`${b.x-pad} ${b.y-pad} ${b.w+2*pad} ${b.h+2*pad}`,
+    width:Math.round(b.w+2*pad), height:Math.round(b.h+2*pad)
+  });
+  out.appendChild(shadowDefs());
+  out.appendChild(el('rect',{x:b.x-pad, y:b.y-pad, width:b.w+2*pad, height:b.h+2*pad, fill:C('bg')}));
+  out.appendChild(layers.ground.cloneNode(true));
+  out.appendChild(layers.casing.cloneNode(true));
+  out.appendChild(layers.fill.cloneNode(true));
+  out.appendChild(layers.items.cloneNode(true));
+  return '<?xml version="1.0" encoding="UTF-8"?>\n' + new XMLSerializer().serializeToString(out);
+}
+function downloadBlob(data, name, mime){
+  const blob = data instanceof Blob ? data : new Blob([data], {type:mime});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+}
+function exportSVG(){
+  downloadBlob(exportSVGString(), 'ban-do.svg', 'image/svg+xml;charset=utf-8');
+  toast('Đã tải ban-do.svg');
+}
+function exportPNG(){
+  const s = exportSVGString();
+  const b = bounds(), pad = 50, scale = 2;
+  const img = new Image();
+  img.onload = () => {
+    const cv = document.createElement('canvas');
+    cv.width = Math.round((b.w+2*pad)*scale);
+    cv.height = Math.round((b.h+2*pad)*scale);
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = C('bg');
+    ctx.fillRect(0,0,cv.width,cv.height);
+    ctx.drawImage(img,0,0,cv.width,cv.height);
+    cv.toBlob(bl => { downloadBlob(bl,'ban-do.png','image/png'); toast('Đã tải ban-do.png'); });
+  };
+  img.onerror = () => toast('Không xuất được PNG');
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(s);
+}
+
+/* ---------- thông báo ---------- */
+let hintTimer = null;
+const HINT_DEFAULT = 'Kéo mẫu vào bản đồ • Chọn đường/sông: kéo chấm CAM để uốn cong, sửa chỉ số ở góc phải • Nhấp đúp vào hình để sửa đỉnh • Nhấp đúp vào tên để đổi chữ • Ctrl+Z: hoàn tác';
+function toast(msg){
+  hint.textContent = msg;
+  clearTimeout(hintTimer);
+  hintTimer = setTimeout(() => hint.textContent = HINT_DEFAULT, 2600);
+}
+
+/* ---------- modal nhập tên ---------- */
+const modalEl = document.getElementById('modal');
+const modalTitle = document.getElementById('modalTitle');
+const modalInput = document.getElementById('modalInput');
+const modalPicker = document.getElementById('modalPicker');
+let pkSel = {icon:'home', color:'#4285F4'};
+function renderPicker(){
+  const iconsEl = document.getElementById('pkIcons');
+  iconsEl.innerHTML = '';
+  GLYPH_LIST.forEach(([key,label]) => {
+    const t = document.createElement('div');
+    t.className = 'pkIcon' + (pkSel.icon === key ? ' sel' : '');
+    t.title = label;
+    t.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><g fill="#5f6368">'+GLYPHS[key]+'</g></svg>';
+    t.addEventListener('click', () => { pkSel.icon = key; renderPicker(); });
+    iconsEl.appendChild(t);
+  });
+  const colEl = document.getElementById('pkColors');
+  colEl.innerHTML = '';
+  PIN_COLORS.forEach(c => {
+    const sw = document.createElement('span');
+    sw.className = 'pkColor' + (pkSel.color === c ? ' sel' : '');
+    sw.style.background = c;
+    sw.addEventListener('click', () => { pkSel.color = c; renderPicker(); });
+    colEl.appendChild(sw);
+  });
+}
+let modalOkCb = null, modalCancelCb = null;
+function openModal(title, value, onOk, onCancel){
+  modalTitle.textContent = title;
+  modalInput.style.display = '';
+  modalPicker.hidden = true;
+  modalInput.value = value || '';
+  modalOkCb = onOk || null;
+  modalCancelCb = onCancel || null;
+  modalEl.hidden = false;
+  setTimeout(() => { modalInput.focus(); modalInput.select(); }, 0);
+}
+function openPicker(title, it, onOk, onCancel){
+  modalTitle.textContent = title;
+  modalInput.style.display = 'none';
+  modalPicker.hidden = false;
+  pkSel = {icon: it.icon || 'home', color: it.color || '#4285F4'};
+  renderPicker();
+  modalOkCb = onOk || null;
+  modalCancelCb = onCancel || null;
+  modalEl.hidden = false;
+}
+function closeModal(){
+  modalEl.hidden = true;
+  modalOkCb = null;
+  modalCancelCb = null;
+}
+function submitModal(){
+  const isPicker = !modalPicker.hidden;
+  const arg = isPicker ? {icon:pkSel.icon, color:pkSel.color} : modalInput.value.trim().slice(0,60);
+  const ok = modalOkCb;
+  closeModal();
+  if (ok) ok(arg);
+}
+document.getElementById('modalOk').addEventListener('click', submitModal);
+document.getElementById('modalCancel').addEventListener('click', () => {
+  const cancel = modalCancelCb;
+  closeModal();
+  if (cancel) cancel();
+});
+modalEl.addEventListener('pointerdown', e => {
+  if (e.target === modalEl){
+    const cancel = modalCancelCb;
+    closeModal();
+    if (cancel) cancel();
+  }
+});
+modalInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter'){ e.preventDefault(); submitModal(); }
+  else if (e.key === 'Escape'){
+    e.preventDefault();
+    const cancel = modalCancelCb;
+    closeModal();
+    if (cancel) cancel();
+  }
+});
+
+/* ---------- thanh công cụ ---------- */
+function syncToolbar(){
+  btnUndo.disabled = !undoStack.length;
+  btnRedo.disabled = !redoStack.length;
+  const has = sel != null && !!byId(sel);
+  btnDup.disabled = !has;
+  btnDel.disabled = !has;
+}
+btnUndo.addEventListener('click', undo);
+btnRedo.addEventListener('click', redo);
+btnGrid.addEventListener('click', () => {
+  gridOn = !gridOn;
+  btnGrid.classList.toggle('active', gridOn);
+  document.getElementById('gridRect').style.display = gridOn ? '' : 'none';
+  toast(gridOn ? 'Đã bật lưới + bám lưới' : 'Đã tắt lưới + bám lưới');
+});
+btnDup.addEventListener('click', duplicateSel);
+btnDel.addEventListener('click', deleteSel);
+document.getElementById('btnZoomIn').addEventListener('click', () => setZoom(zoom*1.25));
+document.getElementById('btnZoomOut').addEventListener('click', () => setZoom(zoom/1.25));
+document.getElementById('btnSVG').addEventListener('click', exportSVG);
+document.getElementById('btnPNG').addEventListener('click', exportPNG);
+document.getElementById('btnCopySVG').addEventListener('click', async () => {
+  const code = exportSVGString();
+  try{
+    await navigator.clipboard.writeText(code);
+    toast('Đã sao chép code SVG vào clipboard');
+  }catch(err){
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = code;
+      ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      toast(ok ? 'Đã sao chép code SVG vào clipboard' : 'Không sao chép được — hãy dùng Xuất SVG');
+    }catch(e2){
+      toast('Không sao chép được — hãy dùng Xuất SVG');
+    }
+  }
+});
+document.getElementById('btnClear').addEventListener('click', clearAll);
+
+const propsBox = document.getElementById('props');
+const pTitle = document.getElementById('propsTitle');
+const pLen = document.getElementById('pLen');
+const pW = document.getElementById('pW');
+const pSoft = document.getElementById('pSoft');
+function syncProps(){
+  const it = sel != null ? byId(sel) : null;
+  const show = !!(it && (it.type === 'road' || it.type === 'river'));
+  propsBox.hidden = !show;
+  if (!show) return;
+  pTitle.textContent = it.type === 'road' ? 'Chỉ số đường' : 'Chỉ số sông';
+  const S = roadSamples(it, 40);
+  let len = 0;
+  for (let i=1;i<S.length;i++) len += Math.hypot(S[i][0]-S[i-1][0], S[i][1]-S[i-1][1]);
+  pLen.value = Math.round(len);
+  pW.value = it.w;
+  pSoft.value = it.soft == null ? 0.5 : it.soft;
+}
+function applyProp(mut){
+  const it = sel != null ? byId(sel) : null;
+  if (!it || (it.type !== 'road' && it.type !== 'river')) return;
+  const before = snapshot();
+  mut(it);
+  renderItem(it); drawOverlay(); commit(before); syncProps();
+}
+pLen.addEventListener('change', () => applyProp(it => {
+  const v = Math.max(40, +pLen.value || 40);
+  const S = roadSamples(it, 40);
+  let len = 0;
+  for (let i=1;i<S.length;i++) len += Math.hypot(S[i][0]-S[i-1][0], S[i][1]-S[i-1][1]);
+  len = len || 1;
+  let cx = 0, cy = 0;
+  it.pts.forEach(p => { cx += p[0]; cy += p[1]; });
+  cx /= it.pts.length; cy /= it.pts.length;
+  const k = v/len;
+  it.pts = it.pts.map(p => [Math.round(cx+(p[0]-cx)*k), Math.round(cy+(p[1]-cy)*k)]);
+}));
+pW.addEventListener('change', () => applyProp(it => { it.w = Math.max(8, snap2(+pW.value || 26)); }));
+pSoft.addEventListener('change', () => applyProp(it => { it.soft = Math.min(1, Math.max(0, Math.round((+pSoft.value || 0.5)*20)/20)); }));
+document.getElementById('btnTheme').addEventListener('click', () => {
+  applyTheme(themeName === 'maps' ? 'gray' : 'maps');
+  toast('Đã đổi giao diện: ' + THEMES[themeName].name);
+});
+function applyTheme(name){
+  themeName = name;
+  board.style.background = C('bg');
+  const dot = document.querySelector('#defs pattern circle');
+  if (dot) dot.setAttribute('fill', C('grid'));
+  document.getElementById('palette').innerHTML = '';
+  buildPalette();
+  renderAll();
+  drawOverlay();
+  syncProps();
+}
+
+/* ---------- khởi động ---------- */
+buildPalette();
+setupDefs();
+renderAll();
+(function fitView(){
+  const r = board.getBoundingClientRect();
+  const b = bounds();
+  zoom = Math.min(1, (r.width-80)/b.w, (r.height-80)/b.h);
+  zoom = Math.max(0.4, zoom);
+  tx = r.width/2 - (b.x+b.w/2)*zoom;
+  ty = r.height/2 - (b.y+b.h/2)*zoom;
+  applyTransform();
+})();
+board.style.background = C('bg');
+hint.textContent = HINT_DEFAULT;
+syncToolbar();
+
+function setupDefs(){
+  const defs = document.getElementById('defs');
+  const pat = el('pattern',{id:'grid',width:20,height:20,patternUnits:'userSpaceOnUse'});
+  pat.appendChild(el('circle',{cx:1,cy:1,r:0.9,fill:'#dad7cf'}));
+  defs.appendChild(pat);
+  const f = el('filter',{id:'bsh',x:'-40%',y:'-40%',width:'180%',height:'180%'});
+  f.appendChild(el('feDropShadow',{dx:0,dy:1.2,stdDeviation:1.2,'flood-color':'#3c4043','flood-opacity':0.28}));
+  defs.appendChild(f);
+}
+</script>
+</body>
+</html>
