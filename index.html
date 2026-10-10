@@ -19,7 +19,15 @@
   .btn.primary:hover:not(:disabled){ background:#1765cc; }
   .btn.danger{ color:#d93025; }
   .btn.active{ background:#e8f0fe; border-color:#a8c7fa; color:var(--accent); }
-  #zoomLabel{ font-size:12px; color:#5f6368; min-width:42px; text-align:center; }
+  #zoomLabel{ font-size:12px; color:#5f6368; width:48px; text-align:center; border:1px solid transparent; border-radius:6px; padding:3px 2px; font-family:inherit; background:transparent; outline:none; }
+  #zoomLabel:hover{ border-color:#dadce0; }
+  #zoomLabel:focus{ border-color:#1a73e8; background:#fff; }
+  #shapeMenuWrap{ position:relative; }
+  #shapeMenu{ position:absolute; top:calc(100% + 6px); left:0; background:#fff; border:1px solid #dadce0; border-radius:10px; box-shadow:0 6px 20px rgba(60,64,67,.25); padding:8px; z-index:40; }
+  #shapeMenu[hidden]{ display:none; }
+  #shapeGrid{ display:grid; grid-template-columns:repeat(5, 36px); gap:6px; max-height:132px; overflow-y:auto; }
+  .mShape{ width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid #e8e8e4; border-radius:7px; cursor:pointer; background:#fff; }
+  .mShape:hover{ background:#e8f0fe; border-color:#a8c7fa; }
   main{ flex:1; display:flex; min-height:0; }
   #palette{ width:192px; background:#fff; border-right:1px solid #e3e3e0; overflow-y:auto; padding:10px 8px 24px; flex-shrink:0; }
   .cat{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#80868b; margin:12px 6px 4px; }
@@ -40,9 +48,11 @@
   #board [data-handle="add"]{ cursor:copy; }
   #overlay{ pointer-events:none; }
   #overlay [data-handle]{ pointer-events:all; }
-  #overlay [data-handle="dup"], #overlay [data-handle="del"]{ cursor:pointer; }
-  #overlay [data-handle="dup"]:hover circle, #overlay [data-handle="del"]:hover circle{ fill:#e8f0fe; stroke:#1a73e8; }
-  #hint{ position:absolute; left:12px; bottom:12px; background:rgba(255,255,255,.92); border:1px solid #e8e8e4; border-radius:9px; padding:7px 12px; font-size:12px; color:#5f6368; box-shadow:0 1px 4px rgba(60,64,67,.12); max-width:calc(100% - 24px); pointer-events:none; }
+  #overlay [data-handle="dup"], #overlay [data-handle="del"], #overlay [data-handle="col"]{ cursor:pointer; }
+  #overlay [data-handle="dup"]:hover circle, #overlay [data-handle="del"]:hover circle, #overlay [data-handle="col"]:hover circle{ fill:#e8f0fe; stroke:#1a73e8; }
+  #toast{ position:absolute; left:12px; bottom:12px; background:rgba(32,33,36,.92); color:#fff; border-radius:9px; padding:8px 14px; font-size:12.5px; box-shadow:0 2px 8px rgba(0,0,0,.25); opacity:0; transition:opacity .25s; pointer-events:none; max-width:calc(100% - 24px); z-index:30; }
+  #toast[hidden]{ display:none; }
+  #toast.show{ opacity:1; }
   #props{ position:absolute; right:12px; bottom:12px; background:rgba(255,255,255,.97); border:1px solid #e8e8e4; border-radius:11px; padding:10px 12px; box-shadow:0 2px 8px rgba(60,64,67,.18); display:flex; flex-direction:column; gap:6px; width:200px; }
   #props[hidden]{ display:none; }
   #propsTitle{ font-size:12px; font-weight:600; color:#202124; }
@@ -59,13 +69,34 @@
   #modalPicker{ display:flex; flex-direction:column; gap:8px; }
   #modalPicker[hidden]{ display:none; }
   .pk-label{ font-size:12px; color:#5f6368; }
+  .pk-label[hidden]{ display:none; }
   #pkIcons{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  #pkIcons[hidden]{ display:none; }
   .pkIcon{ display:flex; align-items:center; justify-content:center; height:36px; border:1.5px solid #dadce0; border-radius:8px; cursor:pointer; background:#fff; }
   .pkIcon:hover{ background:#f1f3f4; }
   .pkIcon.sel{ background:#e8f0fe; border-color:#1a73e8; }
   #pkColors{ display:flex; gap:7px; flex-wrap:wrap; }
+  #pkColors2{ display:flex; gap:7px; flex-wrap:wrap; }
   .pkColor{ width:20px; height:20px; border-radius:50%; cursor:pointer; border:2px solid #fff; box-shadow:0 0 0 1px rgba(0,0,0,.15); }
   .pkColor.sel{ box-shadow:0 0 0 2px #1a73e8; }
+  .pkCustom{ background:conic-gradient(#f28b82,#fbbc04,#81c995,#78d9ec,#a142f4,#f28b82); }
+  .pkEd{ display:flex; align-items:center; justify-content:center; }
+  #pkShapes{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; max-height:150px; overflow-y:auto; }
+  #pkShapes[hidden]{ display:none; }
+  #pkColor2Row[hidden]{ display:none; }
+  #pkMatchRow{ display:flex; align-items:center; gap:7px; font-size:12px; color:#5f6368; cursor:pointer; }
+  #pkMatchRow[hidden]{ display:none; }
+  #pkMatch{ accent-color:#1a73e8; }
+  #pkSliderRow[hidden]{ display:none; }
+  #pkSliderRow .pk-label{ margin-bottom:2px; }
+  #modalImport{ display:flex; flex-direction:column; gap:8px; }
+  #modalImport[hidden]{ display:none; }
+  #impText{ width:100%; border:1px solid #dadce0; border-radius:8px; padding:8px 10px; font-family:Consolas,monospace; font-size:11px; resize:vertical; outline:none; }
+  #impText:focus{ border-color:#1a73e8; }
+  #impPreview{ border:1px solid #dadce0; border-radius:8px; height:110px; display:flex; align-items:center; justify-content:center; background:#fff; overflow:hidden; }
+  #impPreview[hidden]{ display:none; }
+  #impPreview svg{ max-width:100%; max-height:100%; }
+  #impFile{ font-size:12px; color:#5f6368; }
 </style>
 </head>
 <body>
@@ -77,13 +108,18 @@
   <button id="btnGrid" class="btn active" title="Bật/tắt lưới và bám lưới">Lưới</button>
   <button id="btnTheme" class="btn" title="Đổi giao diện màu (Maps / Xám)">Giao diện</button>
   <div class="sep"></div>
-  <button id="btnDup" class="btn" title="Nhân đôi (Ctrl+D)">Nhân đôi</button>
-  <button id="btnDel" class="btn danger" title="Xóa (Delete)">Xóa</button>
+  <div id="shapeMenuWrap">
+    <button id="btnShapes" class="btn" title="Chèn hình khối">Hình khối ▾</button>
+    <div id="shapeMenu" hidden>
+      <div id="shapeGrid"></div>
+    </div>
+  </div>
   <div class="grow"></div>
   <button id="btnZoomOut" class="btn" title="Thu nhỏ">−</button>
-  <span id="zoomLabel">100%</span>
+  <input id="zoomLabel" type="text" value="100%" autocomplete="off" spellcheck="false" title="Nhập tỉ lệ (25–400%) rồi Enter">
   <button id="btnZoomIn" class="btn" title="Phóng to">+</button>
   <div class="sep"></div>
+  <button id="btnImport" class="btn" title="Nhập SVG (dán mã hoặc chọn file)">Nhập SVG</button>
   <button id="btnSVG" class="btn primary" title="Tải bản đồ về dạng SVG">Xuất SVG</button>
   <button id="btnCopySVG" class="btn" title="Sao chép code SVG vào clipboard (Ctrl+V ở nơi khác)">Sao chép SVG</button>
   <button id="btnPNG" class="btn" title="Tải bản đồ về dạng PNG">Xuất PNG</button>
@@ -103,7 +139,7 @@
         <g id="overlay"></g>
       </g>
     </svg>
-    <div id="hint"></div>
+    <div id="toast" hidden></div>
     <div id="props" hidden>
       <div id="propsTitle">Chỉ số đường</div>
       <label>Chiều dài <input id="pLen" type="number" step="10" min="40"></label>
@@ -118,10 +154,33 @@
     <div id="modalTitle">Nhập tên</div>
     <input id="modalInput" type="text" maxlength="60" autocomplete="off" spellcheck="false">
     <div id="modalPicker" hidden>
-      <div class="pk-label">Biểu tượng</div>
-      <div id="pkIcons"></div>
-      <div class="pk-label">Màu hiển thị</div>
+      <div class="pk-label" id="pkShapeLabel" hidden>Hình khối</div>
+      <div id="pkShapes" hidden></div>
+      <div class="pk-label" id="pkIconLabel" hidden>Biểu tượng</div>
+      <div id="pkIcons" hidden></div>
+      <div class="pk-label" id="pkC1Label">Màu hiển thị</div>
       <div id="pkColors"></div>
+      <div id="pkColor2Row" hidden>
+        <div class="pk-label" id="pkC2Label">Màu viền</div>
+        <div id="pkColors2"></div>
+      </div>
+      <label id="pkMatchRow" hidden>
+        <input type="checkbox" id="pkMatch">
+        <span>Viền trùng màu nền</span>
+      </label>
+      <div id="pkSliderRow" hidden>
+        <div class="pk-label" style="display:flex;justify-content:space-between;"><span id="pkCvLabelText">Độ cong</span> <span id="pkCvVal">0%</span></div>
+        <input id="pkCv" type="range" min="0" max="45" value="0" style="width:100%;accent-color:#1a73e8;">
+      </div>
+      <input id="pkCustomColor" type="color" value="#4285F4" style="position:absolute; left:-9999px; top:0; opacity:0;">
+    </div>
+    <div id="modalImport" hidden>
+      <div class="pk-label">Dán mã SVG:</div>
+      <textarea id="impText" rows="6" spellcheck="false" placeholder='<svg viewBox="0 0 24 24">...</svg>'></textarea>
+      <div class="pk-label">Hoặc chọn file .svg:</div>
+      <input id="impFile" type="file" accept=".svg,image/svg+xml">
+      <div id="impPreview" hidden></div>
+      <div id="impMsg" class="pk-label"></div>
     </div>
     <div id="modalBtns">
       <button id="modalCancel" class="btn">Hủy</button>
@@ -143,12 +202,10 @@ const layers = {
 };
 const overlay   = document.getElementById('overlay');
 const zoomLabel = document.getElementById('zoomLabel');
-const hint      = document.getElementById('hint');
+const toastEl   = document.getElementById('toast');
 const btnUndo = document.getElementById('btnUndo');
 const btnRedo = document.getElementById('btnRedo');
 const btnGrid = document.getElementById('btnGrid');
-const btnDup  = document.getElementById('btnDup');
-const btnDel  = document.getElementById('btnDel');
 
 const CARCOLORS = [
   ['#e5533d','#a53728'], ['#4a89f3','#2f5fb3'], ['#f4b63f','#b3822a'],
@@ -165,8 +222,8 @@ const THEMES = {
     riverFill:'#a9d6fb', riverCase:'#8fc3ec',
     houseFill:'#f1eee7', houseStroke:'#d6d1c6',
     buildingFill:'#e6e2d9', buildingStroke:'#cdc8bb',
-    parkFill:'#c8e6c0', parkStroke:'#aed8a4', parkPath:'#efe8d5',
-    pondFill:'#a9d6fb', pondStroke:'#8bc2ee', pondHi:'#bfe0fc',
+    parkFill:'#c8e6c0', parkStroke:'#aed8a4',
+    pondFill:'#a9d6fb', pondStroke:'#8bc2ee',
     treeCanopy:'#9ED36A', treeTrunk:'#965353', treeFruit:'#EC5564',
     xwalkFill:'#ffffff', xwalkStroke:'#b8b2a6',
     lampPole:'#219653', lampHead:'#f2994a', lampHeadStroke:'#f2c94c',
@@ -179,8 +236,8 @@ const THEMES = {
     riverFill:'#c2d3de', riverCase:'#adc1cd',
     houseFill:'#dcdee0', houseStroke:'#c6c9cc',
     buildingFill:'#cfd2d5', buildingStroke:'#b9bdc1',
-    parkFill:'#dee1dd', parkStroke:'#c9cdc8', parkPath:'#e9ebeb',
-    pondFill:'#c2d3de', pondStroke:'#adc1cd', pondHi:'#d2e0ea',
+    parkFill:'#dee1dd', parkStroke:'#c9cdc8',
+    pondFill:'#c2d3de', pondStroke:'#adc1cd',
     treeCanopy:'#b3c2a8', treeTrunk:'#9a8d84', treeFruit:'#d99a94',
     xwalkFill:'#e8eaec', xwalkStroke:'#969ba0',
     lampPole:'#8ba398', lampHead:'#d9b28c', lampHeadStroke:'#d3c9a2',
@@ -189,6 +246,17 @@ const THEMES = {
 };
 let themeName = 'maps';
 const C = k => THEMES[themeName][k];
+const houseCol = (it,k) => it.color || C(k);
+const HOUSE_TYPES = new Set(['house','house-town','house-l','house-t','house-u','house-trap','house-para','building','building-l','building-long']);
+const PALETTE_ICON = 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z';
+const HOUSE_COLORS = [
+  ['', 'Mặc định (theo giao diện)'],
+  ['#7CB964', 'Xanh lá'],
+  ['#4E8C3F', 'Xanh lá đậm'],
+  ['#5B8DB8', 'Xanh dương nhạt'],
+  ['#9AA0A6', 'Xám'],
+  ['#D9C9A3', 'Be']
+];
 const PIN_PATH = 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z';
 const GLYPHS = {
   home:'<path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>',
@@ -207,6 +275,191 @@ const GLYPH_LIST = [
   ['mall','Cửa hàng'], ['bank','Ngân hàng'], ['truck','Kho / Giao hàng'], ['cafe','Cà phê'], ['star','Địa điểm']
 ];
 const PIN_COLORS = ['#EA4335','#F29900','#FBBC04','#34A853','#00897B','#4285F4','#7B1FA2','#E91E63','#8D6E63','#5F6368'];
+const SHAPE_KEYS = ['rect','square','roundrect','pill','ellipse','circle','triangle','triangled','diamond','pentagon','hexagon','octagon','parallelogram','trapezoid','arrowR','arrowL','arrowU','arrowD','arrowLR','star5','star6','star16','heart','cloud','sun','lightning','speech','banner','plus'];
+const SHAPES2 = {
+  rect:{label:'Hình chữ nhật', kind:'poly', pts:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]], dw:120, dh:80, cv0:0},
+  square:{label:'Hình vuông', kind:'poly', pts:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]], dw:90, dh:90, cv0:0},
+  roundrect:{label:'Chữ nhật bo góc', kind:'poly', pts:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]], dw:120, dh:80, cv0:0.2},
+  pill:{label:'Viên thuốc', kind:'poly', pts:[[-.5,-.5],[.5,-.5],[.5,.5],[-.5,.5]], dw:120, dh:56, cv0:0.45},
+  ellipse:{label:'Hình oval', kind:'fn', dw:120, dh:80, fn:(w,h)=>({d:`M${-w/2},0 A${w/2},${h/2} 0 1 1 ${w/2},0 A${w/2},${h/2} 0 1 1 ${-w/2},0 Z`})},
+  circle:{label:'Hình tròn', kind:'fn', dw:90, dh:90, fn:(w)=>({d:`M${-w/2},0 A${w/2},${w/2} 0 1 1 ${w/2},0 A${w/2},${w/2} 0 1 1 ${-w/2},0 Z`})},
+  triangle:{label:'Tam giác', kind:'poly', pts:[[-.5,.5],[0,-.5],[.5,.5]], dw:100, dh:90, cv0:0},
+  triangled:{label:'Tam giác ngược', kind:'poly', pts:[[-.5,-.5],[.5,-.5],[0,.5]], dw:100, dh:90, cv0:0},
+  diamond:{label:'Hình thoi', kind:'poly', pts:[[0,-.5],[.5,0],[0,.5],[-.5,0]], dw:100, dh:100, cv0:0},
+  pentagon:{label:'Ngũ giác', kind:'poly', dw:100, dh:100, cv0:0, pts:()=>regPts(5,-Math.PI/2)},
+  hexagon:{label:'Lục giác', kind:'poly', dw:110, dh:95, cv0:0, pts:()=>regPts(6,0)},
+  octagon:{label:'Bát giác', kind:'poly', dw:100, dh:100, cv0:0, pts:()=>regPts(8,Math.PI/8)},
+  parallelogram:{label:'Hình bình hành', kind:'poly', pts:[[-.32,-.5],[.5,-.5],[.32,.5],[-.5,.5]], dw:110, dh:80, cv0:0},
+  trapezoid:{label:'Hình thang', kind:'poly', pts:[[-.3,-.5],[.3,-.5],[.5,.5],[-.5,.5]], dw:110, dh:80, cv0:0},
+  arrowR:{label:'Mũi tên phải', kind:'poly', pts:[[-.5,-.16],[.06,-.16],[.06,-.4],[.5,0],[.06,.4],[.06,.16],[-.5,.16]], dw:130, dh:70, cv0:0},
+  arrowL:{label:'Mũi tên trái', kind:'poly', pts:[[.5,-.16],[-.06,-.16],[-.06,-.4],[-.5,0],[-.06,.4],[-.06,.16],[.5,.16]], dw:130, dh:70, cv0:0},
+  arrowU:{label:'Mũi tên lên', kind:'poly', pts:[[-.16,.5],[-.16,-.06],[-.4,-.06],[0,-.5],[.4,-.06],[.16,-.06],[.16,.5]], dw:70, dh:130, cv0:0},
+  arrowD:{label:'Mũi tên xuống', kind:'poly', pts:[[-.16,-.5],[-.16,.06],[-.4,.06],[0,.5],[.4,.06],[.16,.06],[.16,-.5]], dw:70, dh:130, cv0:0},
+  arrowLR:{label:'Mũi tên hai chiều', kind:'poly', pts:[[-.5,0],[-.3,-.22],[-.3,-.11],[.3,-.11],[.3,-.22],[.5,0],[.3,.22],[.3,.11],[-.3,.11],[-.3,.22]], dw:140, dh:70, cv0:0},
+  star5:{label:'Sao 5 cánh', kind:'poly', dw:100, dh:100, cv0:0, pts:()=>starPts(5,.5,.2)},
+  star6:{label:'Sao 6 cánh', kind:'poly', dw:100, dh:100, cv0:0, pts:()=>starPts(6,.5,.26)},
+  star16:{label:'Bùng nổ', kind:'poly', dw:110, dh:110, cv0:0, pts:()=>starPts(16,.5,.36)},
+  heart:{label:'Trái tim', kind:'fn', dw:100, dh:95, fn:(w,h)=>{const x=w/2,y=h/2; return {d:`M0,${y} C${-x},${y*0.28} ${-x},${-y*0.3} ${-x*0.5},${-y*0.5} C${-x*0.22},${-y*0.62} 0,${-y*0.38} 0,${-y*0.16} C0,${-y*0.38} ${x*0.22},${-y*0.62} ${x*0.5},${-y*0.5} C${x},${-y*0.3} ${x},${y*0.28} 0,${y} Z`};}},
+  cloud:{label:'Đám mây', kind:'fn', dw:130, dh:85, cx:12, cy:12, sx:20, sy:12, fn:(w,h)=>({d:'M6.5 18H13H19C20.6961 17.7573 22 16.2632 22 14.5C22 12.7096 20.6556 11.2331 18.9212 11.0251C18.4555 8.175 15.9818 6 13 6C10.7118 6 8.72277 7.2809 7.71081 9.1648C7.32556 9.0574 6.91949 9 6.5 9C4.01472 9 2 11.0147 2 13.5C2 15.9853 4.01472 18 6.5 18Z', t:`scale(${(w/20).toFixed(4)},${(h/12).toFixed(4)}) translate(-12,-12)`})},
+  sun:{label:'Mặt trời', kind:'poly', dw:110, dh:110, cv0:0, pts:()=>starPts(8,.5,.32)},
+  lightning:{label:'Tia sét', kind:'poly', pts:[[.12,-.5],[-.38,.08],[-.06,.08],[-.12,.5],[.38,-.08],[.06,-.08]], dw:80, dh:110, cv0:0},
+  speech:{label:'Bong bóng thoại', kind:'poly', pts:[[-.5,-.42],[.5,-.42],[.5,.28],[.12,.28],[-.06,.5],[-.12,.28],[-.5,.28]], dw:130, dh:95, cv0:0},
+  banner:{label:'Cờ hiệu', kind:'poly', pts:[[-.5,-.42],[.26,-.42],[.5,0],[.26,.42],[-.5,.42]], dw:120, dh:85, cv0:0},
+  plus:{label:'Dấu cộng', kind:'poly', pts:[[-.09,-.5],[.09,-.5],[.09,-.09],[.5,-.09],[.5,.09],[.09,.09],[.09,.5],[-.09,.5],[-.09,.09],[-.5,.09],[-.5,-.09],[-.09,-.09]], dw:100, dh:100, cv0:0}
+};
+const SHAPE_FILLS = [['#4285F4','Xanh dương'],['#EA4335','Đỏ'],['#FBBC04','Vàng'],['#34A853','Xanh lá'],['#A142F4','Tím'],['#F06292','Hồng'],['#FF7043','Cam'],['#00897B','Ngọc'],['#8D6E63','Nâu'],['#FFFFFF','Trắng'],['','Không màu']];
+const SHAPE_STROKES = [['#1967D2','Xanh dương đậm'],['#5F6368','Xám'],['#202124','Đen'],['#FFFFFF','Trắng'],['#D93025','Đỏ'],['#188038','Xanh lá đậm'],['','Không viền']];
+function starPts(n, ro, ri){
+  const pts = [];
+  for (let i=0;i<n*2;i++){
+    const a = -Math.PI/2 + Math.PI*i/n;
+    pts.push([Math.cos(a)*(i%2 ? ri : ro), Math.sin(a)*(i%2 ? ri : ro)]);
+  }
+  return pts;
+}
+function regPts(n, a0){
+  const pts = [];
+  for (let i=0;i<n;i++){
+    const a = (a0||0) + Math.PI*2*i/n;
+    pts.push([Math.cos(a)*0.5, Math.sin(a)*0.5]);
+  }
+  return pts;
+}
+function roundPath(pts, cv){
+  const n = pts.length;
+  if (cv <= 0.001 || n < 3) return ptsPath(pts);
+  let d = '';
+  for (let i=0;i<n;i++){
+    const P = pts[i], N = pts[(i-1+n)%n], X = pts[(i+1)%n];
+    const d1 = Math.hypot(P[0]-N[0], P[1]-N[1]) || 1;
+    const d2 = Math.hypot(P[0]-X[0], P[1]-X[1]) || 1;
+    const rr = Math.min(cv*d1, cv*d2, d1/2, d2/2);
+    const ax = P[0] + (N[0]-P[0])*rr/d1, ay = P[1] + (N[1]-P[1])*rr/d1;
+    const bx = P[0] + (X[0]-P[0])*rr/d2, by = P[1] + (X[1]-P[1])*rr/d2;
+    d += (i===0 ? 'M'+ax.toFixed(2)+','+ay.toFixed(2) : 'L'+ax.toFixed(2)+','+ay.toFixed(2)) + 'Q'+P[0].toFixed(2)+','+P[1].toFixed(2)+' '+bx.toFixed(2)+','+by.toFixed(2);
+  }
+  return d + 'Z';
+}
+function roundedPolyPts(base, cv, per){
+  per = per || 3;
+  const n = base.length;
+  if (cv <= 0.001) return base.map(p => [p[0], p[1]]);
+  const meta = [];
+  for (let i=0;i<n;i++){
+    const P = base[i], N = base[(i-1+n)%n], X = base[(i+1)%n];
+    const d1 = Math.hypot(P[0]-N[0], P[1]-N[1]) || 1;
+    const d2 = Math.hypot(P[0]-X[0], P[1]-X[1]) || 1;
+    const rr = Math.min(cv*d1, cv*d2, d1/2, d2/2);
+    meta.push({
+      ax: P[0] + (N[0]-P[0])*rr/d1, ay: P[1] + (N[1]-P[1])*rr/d1,
+      bx: P[0] + (X[0]-P[0])*rr/d2, by: P[1] + (X[1]-P[1])*rr/d2, P
+    });
+  }
+  const out = [];
+  for (let i=0;i<n;i++){
+    const m = meta[i], nx = meta[(i+1)%n];
+    for (let j=0;j<=per;j++){
+      const t = j/per, u = 1-t;
+      out.push([u*u*m.ax + 2*u*t*m.P[0] + t*t*m.bx, u*u*m.ay + 2*u*t*m.P[1] + t*t*m.by]);
+    }
+    for (let j=1;j<=2;j++){
+      const t = j/3;
+      out.push([m.bx + (nx.ax-m.bx)*t, m.by + (nx.ay-m.by)*t]);
+    }
+  }
+  return out;
+}
+function ellPts(n){
+  const pts = [];
+  for (let i=0;i<n;i++){
+    const a = i/n*Math.PI*2;
+    pts.push([Math.cos(a)*0.5, Math.sin(a)*0.5]);
+  }
+  return pts;
+}
+function shapeInner(key, it, swOverride){
+  const s = SHAPES2[key] || SHAPES2.rect;
+  const w = it.w || s.dw || 100, h = it.h || s.dh || 80;
+  const cv = Math.min(0.45, Math.max(0, it.cv || 0));
+  const sw = swOverride != null ? swOverride : Math.max(1.5, Math.min(6, Math.min(w,h)*0.05));
+  let d, t = null, fr = null, noStroke = false;
+  if (s.kind === 'poly'){
+    const base = typeof s.pts === 'function' ? s.pts() : s.pts;
+    d = roundPath(base.map(p => [p[0]*w, p[1]*h]), cv);
+  } else {
+    const r = s.fn(w, h);
+    d = r.d; t = r.t || null; fr = r.fr || null; noStroke = !!r.noStroke;
+  }
+  const fl = `fill="${it.fill || 'none'}"${fr ? ` fill-rule="${fr}"` : ''}`;
+  const st = (it.stroke && !noStroke) ? `stroke="${it.stroke}" stroke-width="${sw}" stroke-linejoin="round"` : '';
+  return `<path d="${d}" ${fl} ${st}${t ? ` transform="${t}"` : ''}/>`;
+}
+function sampleArc(x0,y0, rx,ry, rotDeg, laf, sf, x, y, out, per){
+  rx = Math.abs(rx) || 0.001; ry = Math.abs(ry) || 0.001;
+  const rot = rotDeg*Math.PI/180;
+  const cosr = Math.cos(rot), sinr = Math.sin(rot);
+  const dx2 = (x0-x)/2, dy2 = (y0-y)/2;
+  const x1p = cosr*dx2 + sinr*dy2, y1p = -sinr*dx2 + cosr*dy2;
+  let l = x1p*x1p/(rx*rx) + y1p*y1p/(ry*ry);
+  if (l > 1){ l = Math.sqrt(l); rx *= l; ry *= l; }
+  const num = rx*rx*ry*ry - rx*rx*y1p*y1p - ry*ry*x1p*x1p;
+  const den = rx*rx*y1p*y1p + ry*ry*x1p*x1p || 1;
+  let co = Math.sqrt(Math.max(0, num/den));
+  if (laf === sf) co = -co;
+  const cxp = co*rx*y1p/ry, cyp = -co*ry*x1p/rx;
+  const ccx = cosr*cxp - sinr*cyp + (x0+x)/2;
+  const ccy = sinr*cxp + cosr*cyp + (y0+y)/2;
+  const th0 = Math.atan2((y1p - cyp)/ry, (x1p - cxp)/rx);
+  const th1 = Math.atan2((-y1p - cyp)/ry, (-x1p - cxp)/rx);
+  let sweep = th1 - th0;
+  if (!sf && sweep > 0) sweep -= 2*Math.PI;
+  if (sf && sweep < 0) sweep += 2*Math.PI;
+  const steps = Math.max(2, Math.ceil(Math.abs(sweep)/(Math.PI/2)*per));
+  for (let j=1;j<=steps;j++){
+    const th = th0 + sweep*j/steps;
+    out.push([
+      ccx + rx*Math.cos(th)*cosr - ry*Math.sin(th)*sinr,
+      ccy + rx*Math.cos(th)*sinr + ry*Math.sin(th)*cosr
+    ]);
+  }
+}
+function samplePath(d, per){
+  per = per || 6;
+  const tk = d.match(/[MmLlHhVvCcAaZz]|-?\d*\.?\d+(?:[eE][-+]?\d+)?/g) || [];
+  const pts = [];
+  let i = 0, cx = 0, cy = 0, sx = 0, sy = 0, cmd = 'M', started = false;
+  const rd = () => parseFloat(tk[i++] || '0');
+  function cubic(x1,y1,x2,y2,x,y){
+    for (let j=1;j<=per;j++){
+      const t = j/per, u = 1-t;
+      pts.push([
+        u*u*u*cx + 3*u*u*t*x1 + 3*u*t*t*x2 + t*t*t*x,
+        u*u*u*cy + 3*u*u*t*y1 + 3*u*t*t*y2 + t*t*t*y
+      ]);
+    }
+    cx = x; cy = y;
+  }
+  while (i < tk.length){
+    if (/[a-zA-Z]/.test(tk[i])) cmd = tk[i++];
+    switch(cmd){
+      case 'M': cx = rd(); cy = rd(); sx = cx; sy = cy; if (!started){ started = true; pts.push([cx,cy]); } cmd = 'L'; break;
+      case 'm': cx += rd(); cy += rd(); sx = cx; sy = cy; if (!started){ started = true; pts.push([cx,cy]); } cmd = 'l'; break;
+      case 'L': cx = rd(); cy = rd(); pts.push([cx,cy]); break;
+      case 'l': cx += rd(); cy += rd(); pts.push([cx,cy]); break;
+      case 'H': cx = rd(); pts.push([cx,cy]); break;
+      case 'h': cx += rd(); pts.push([cx,cy]); break;
+      case 'V': cy = rd(); pts.push([cx,cy]); break;
+      case 'v': cy += rd(); pts.push([cx,cy]); break;
+      case 'C': cubic(rd(),rd(),rd(),rd(),rd(),rd()); break;
+      case 'c': { const x1=cx+rd(), y1=cy+rd(), x2=cx+rd(), y2=cy+rd(), x=cx+rd(), y=cy+rd(); cubic(x1,y1,x2,y2,x,y); break; }
+      case 'A': { const rx=rd(), ry=rd(), rot=rd(), laf=rd(), sf=rd(), x=rd(), y=rd(); sampleArc(cx,cy,rx,ry,rot,laf,sf,x,y,pts,per); cx=x; cy=y; break; }
+      case 'a': { const rx=rd(), ry=rd(), rot=rd(), laf=rd(), sf=rd(), x=cx+rd(), y=cy+rd(); sampleArc(cx,cy,rx,ry,rot,laf,sf,x,y,pts,per); cx=x; cy=y; break; }
+      case 'Z': case 'z': cx = sx; cy = sy; break;
+      default: i++; break;
+    }
+  }
+  return pts;
+}
 
 let items = [], nextId = 1, sel = null;
 let zoom = 1, tx = 0, ty = 0;
@@ -231,7 +484,7 @@ const DEFAULTS = {
   'house-trap':{w:64,h:52}, 'house-para':{w:64,h:52},
   building:{w:92,h:68}, 'building-l':{w:110,h:90}, 'building-long':{w:150,h:42},
   park:{w:220,h:140}, pond:{w:120,h:78}, river:{w:34,soft:0.5},
-  tree:{r:11}, car:{}, lamp:{}, crosswalk:{}, pin:{icon:'home',color:'#4285F4',size:1.4},
+  tree:{r:11}, car:{}, lamp:{}, crosswalk:{}, pin:{icon:'home',color:'#4285F4',size:1.4}, sh:{fill:'#4285F4', stroke:'#1967D2', cv:0},
   'label-road':{size:11,text:'Đường mới'}, 'label-area':{size:14,text:'Khu vực mới'}
 };
 function createItem(type, x, y){
@@ -260,6 +513,19 @@ function polyPath(pts, w, h){
 function ptsPath(pts){
   return pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(2)+','+p[1].toFixed(2)).join('')+'Z';
 }
+function closedPath(pts, k){
+  const n = pts.length;
+  if (n < 3) return ptsPath(pts);
+  let d = 'M'+pts[0][0].toFixed(2)+','+pts[0][1].toFixed(2);
+  for (let i=0;i<n;i++){
+    const a = pts[i], b = pts[(i+1)%n];
+    const p0 = pts[(i-1+n)%n], p3 = pts[(i+2)%n];
+    const c1x = a[0]+(b[0]-p0[0])*k, c1y = a[1]+(b[1]-p0[1])*k;
+    const c2x = b[0]-(p3[0]-a[0])*k, c2y = b[1]-(p3[1]-a[1])*k;
+    d += 'C'+c1x.toFixed(2)+','+c1y.toFixed(2)+' '+c2x.toFixed(2)+','+c2y.toFixed(2)+' '+b[0].toFixed(2)+','+b[1].toFixed(2);
+  }
+  return d+'Z';
+}
 function distToPolyline(px,py,pts){
   let best = 1e9;
   for (let i=0;i<pts.length-1;i++){
@@ -271,15 +537,42 @@ function distToPolyline(px,py,pts){
   }
   return best;
 }
-const VERTEX_ITEMS = new Set(['house','house-town','house-l','house-t','house-u','house-trap','house-para','building','building-l','building-long','park']);
-function convertToPts(it){
+const VERTEX_ITEMS = new Set(['house','house-town','house-l','house-t','house-u','house-trap','house-para','building','building-l','building-long','park','pond','sh']);
+function shConvertible(it){
+  const s = SHAPES2[it.shape];
+  return !!s && (s.kind === 'poly' || !s.noPts);
+}
+function convertToPts(it, forceKey){
+  if (it.type === 'sh' && (forceKey || !it.pts)){
+    const s = SHAPES2[forceKey || it.shape] || SHAPES2.rect;
+    if (s.noPts) return false;
+    if (s.kind === 'poly'){
+      const raw = typeof s.pts === 'function' ? s.pts() : s.pts;
+      it.pts = roundedPolyPts(raw.map(p => [p[0]*it.w, p[1]*it.h]), it.cv || 0, 3);
+    } else {
+      const r = s.fn(it.w, it.h);
+      const cx0 = s.cx != null ? s.cx : 0, cy0 = s.cy != null ? s.cy : 0;
+      const sx0 = s.sx || it.w, sy0 = s.sy || it.h;
+      it.pts = samplePath(r.d).map(p => [(p[0]-cx0)*it.w/sx0, (p[1]-cy0)*it.h/sy0]);
+    }
+    if (it.cs == null) it.cs = (it.cv || 0) > 0.01 ? 0.3 : 0;
+    return true;
+  }
   if (it.type === 'park' && !it.pts){
     it.pts = flattenSegs(PARK_BLOB, 10).map(p=>[p[0]*it.w, p[1]*it.h]);
-    return;
+  } else if (it.type === 'pond' && !it.pts){
+    it.pts = [];
+    for (let i=0;i<16;i++){
+      const a = i/16*Math.PI*2;
+      it.pts.push([Math.cos(a)*it.w/2, Math.sin(a)*it.h/2]);
+    }
+  } else {
+    const sh = SHAPES[it.type];
+    if (sh) it.pts = sh.map(p=>[(p[0]-0.5)*it.w,(p[1]-0.5)*it.h]);
+    else it.pts = [[-it.w/2,-it.h/2],[it.w/2,-it.h/2],[it.w/2,it.h/2],[-it.w/2,it.h/2]];
   }
-  const sh = SHAPES[it.type];
-  if (sh) it.pts = sh.map(p=>[(p[0]-0.5)*it.w,(p[1]-0.5)*it.h]);
-  else it.pts = [[-it.w/2,-it.h/2],[it.w/2,-it.h/2],[it.w/2,it.h/2],[-it.w/2,it.h/2]];
+  if ((it.type === 'park' || it.type === 'pond') && it.cs == null) it.cs = 0.5;
+  return true;
 }
 const PARK_BLOB = [
   ['M',-0.5,0],
@@ -288,10 +581,6 @@ const PARK_BLOB = [
   ['C',0.444,0.333,0.222,0.5,-0.056,0.483],
   ['C',-0.306,0.467,-0.5,0.267,-0.5,0],
   ['Z']
-];
-const PARK_PATHS = [
-  [['M',-0.472,-0.067],['C',-0.222,-0.133,0.111,-0.1,0.444,-0.167]],
-  [['M',-0.167,-0.433],['C',-0.139,-0.133,-0.194,0.2,-0.153,0.467]]
 ];
 function scaleSegs(segs,w,h){
   return segs.map(s => s[0]==='Z' ? 'Z' : s[0]+' '+s.slice(1).map((v,i)=>((i%2 ? v*h : v*w)).toFixed(2)).join(',')).join(' ');
@@ -366,29 +655,30 @@ function shapeGroup(it){
   switch(it.type){
     case 'park': {
       if (it.pts){
-        g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('parkFill'),stroke:C('parkStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
+        const k = (it.cs != null ? it.cs : 0.5)/3;
+        g.appendChild(el('path',{d:closedPath(it.pts,k),fill:C('parkFill'),stroke:C('parkStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
       } else {
         g.appendChild(el('path',{d:scaleSegs(PARK_BLOB,it.w,it.h),fill:C('parkFill'),stroke:C('parkStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
-        const pw = Math.max(3.5, it.w*0.024);
-        PARK_PATHS.forEach(pp => {
-          g.appendChild(el('path',{d:scaleSegs(pp,it.w,it.h),fill:'none',stroke:C('parkPath'),'stroke-width':pw,'stroke-linecap':'round'}));
-        });
       }
       break;
     }
     case 'pond': {
-      g.appendChild(el('ellipse',{rx:it.w/2,ry:it.h/2,fill:C('pondFill'),stroke:C('pondStroke'),'stroke-width':1.5}));
-      g.appendChild(el('ellipse',{cx:-it.w*0.12,cy:-it.h*0.08,rx:it.w*0.3,ry:it.h*0.22,fill:C('pondHi')}));
+      if (it.pts){
+        const k = (it.cs != null ? it.cs : 0.5)/3;
+        g.appendChild(el('path',{d:closedPath(it.pts,k),fill:C('pondFill'),stroke:C('pondStroke'),'stroke-width':1.5,'stroke-linejoin':'round'}));
+      } else {
+        g.appendChild(el('ellipse',{rx:it.w/2,ry:it.h/2,fill:C('pondFill'),stroke:C('pondStroke'),'stroke-width':1.5}));
+      }
       break;
     }
     case 'house': case 'house-town':
-      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('houseFill'),stroke:C('houseStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
-      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:C('houseFill'),stroke:C('houseStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
+      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:houseCol(it,'houseFill'),stroke:houseCol(it,'houseStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:houseCol(it,'houseFill'),stroke:houseCol(it,'houseStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
       break;
     case 'house-l': case 'house-t': case 'house-u': case 'house-trap': case 'house-para': case 'building-l': {
       const big = it.type === 'building-l';
       const d = it.pts ? ptsPath(it.pts) : polyPath(SHAPES[it.type],it.w,it.h);
-      g.appendChild(el('path',{d,fill:big?C('buildingFill'):C('houseFill'),stroke:big?C('buildingStroke'):C('houseStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      g.appendChild(el('path',{d,fill:it.color||(big?C('buildingFill'):C('houseFill')),stroke:it.color||(big?C('buildingStroke'):C('houseStroke')),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
       break;
     }
     case 'label-road': case 'label-area': {
@@ -400,8 +690,8 @@ function shapeGroup(it){
       break;
     }
     case 'building': case 'building-long':
-      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:C('buildingFill'),stroke:C('buildingStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
-      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:C('buildingFill'),stroke:C('buildingStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
+      if (it.pts) g.appendChild(el('path',{d:ptsPath(it.pts),fill:houseCol(it,'buildingFill'),stroke:houseCol(it,'buildingStroke'),'stroke-width':1.2,'stroke-linejoin':'round',filter:'url(#bsh)'}));
+      else g.appendChild(el('rect',{x:-it.w/2,y:-it.h/2,width:it.w,height:it.h,rx:2,fill:houseCol(it,'buildingFill'),stroke:houseCol(it,'buildingStroke'),'stroke-width':1.2,filter:'url(#bsh)'}));
       break;
     case 'tree': {
       [[0,-0.28,0.55],[-0.42,-0.15,0.38],[0.42,-0.15,0.38],[-0.22,-0.55,0.33],[0.22,-0.55,0.33],[0,-0.6,0.3]].forEach(c => {
@@ -441,6 +731,23 @@ function shapeGroup(it){
       gi.innerHTML = '<g fill="#ffffff">'+(GLYPHS[it.icon]||GLYPHS.home)+'</g>';
       pg.appendChild(gi);
       g.appendChild(pg);
+      break;
+    }
+    case 'ext': {
+      const sv = el('svg',{x:(-it.w/2).toFixed(2), y:(-it.h/2).toFixed(2), width:it.w, height:it.h, viewBox:it.vb, preserveAspectRatio:'xMidYMid meet'});
+      sv.innerHTML = it.markup;
+      g.appendChild(sv);
+      break;
+    }
+    case 'sh': {
+      const gg = el('g',{});
+      if (it.pts){
+        const k = (it.cs != null ? it.cs : 0.3)/3;
+        gg.innerHTML = `<path d="${closedPath(it.pts,k)}" fill="${it.fill||'none'}" stroke="${it.stroke||'none'}" stroke-width="2" stroke-linejoin="round"/>`;
+      } else {
+        gg.innerHTML = shapeInner(it.shape, it);
+      }
+      g.appendChild(gg);
       break;
     }
     case 'car':
@@ -550,18 +857,21 @@ function absHandle(name,x,y,inv){
   g.appendChild(el('circle',{r:5.5*inv,fill:'#fff',stroke:'#1a73e8','stroke-width':1.6*inv}));
   return g;
 }
-function addSelButtons(g, b, inv){
+function addSelButtons(g, b, inv, it){
   const ty = -(b.h/2 + 24*inv);
-  const mk = (name, dx, iconD, iconFill) => {
+  const mk = (name, dx, iconD, iconFill, tip, iconScale) => {
+    const isc = (iconScale || 0.45)*inv;
     const h = el('g',{transform:`translate(${dx},${ty})`,'data-handle':name});
+    h.appendChild(el('circle',{r:14*inv,fill:'none','pointer-events':'all'}));
     h.appendChild(el('circle',{r:11*inv,fill:'#fff',stroke:'#c6c6c2','stroke-width':1*inv}));
-    h.appendChild(el('path',{d:iconD,fill:iconFill,transform:`translate(${-5.4*inv},${-5.4*inv}) scale(${0.45*inv})`,'pointer-events':'none'}));
-    const ti = el('title',{}); ti.textContent = name === 'dup' ? 'Nhân đôi' : 'Xóa';
+    h.appendChild(el('path',{d:iconD,fill:iconFill,transform:`translate(${-5.4*inv},${-5.4*inv}) scale(${isc})`,'pointer-events':'none'}));
+    const ti = el('title',{}); ti.textContent = tip;
     h.appendChild(ti);
     g.appendChild(h);
   };
-  mk('dup', -13.5*inv, COPY_ICON, '#5f6368');
-  mk('del', 13.5*inv, TRASH_ICON, '#d93025');
+  mk('dup', -27*inv, COPY_ICON, '#5f6368', 'Nhân đôi');
+  if (it && (HOUSE_TYPES.has(it.type) || it.type === 'sh')) mk('col', 0, PALETTE_ICON, '#4285F4', 'Định dạng', 0.5);
+  mk('del', 27*inv, TRASH_ICON, '#d93025', 'Xóa');
 }
 function drawOverlay(){
   overlay.innerHTML = '';
@@ -588,11 +898,6 @@ function drawOverlay(){
       h.appendChild(ti);
       overlay.appendChild(h);
     }
-    const bg2 = el('g',{transform:`translate(${b.cx},${b.cy}) rotate(${b.rot||0})`});
-    addSelButtons(bg2,b,inv);
-    overlay.appendChild(bg2);
-    addSizeLabel(it,b,inv);
-    return;
   }
   const g = el('g',{transform:`translate(${b.cx},${b.cy}) rotate(${b.rot||0})`});
   g.appendChild(el('rect',{
@@ -615,7 +920,7 @@ function drawOverlay(){
     rh.appendChild(ti);
     g.appendChild(rh);
   }
-  addSelButtons(g,b,inv);
+  addSelButtons(g,b,inv,it);
   overlay.appendChild(g);
   if (b.handles.includes('ends')) addRoadHandles(it,inv);
   addSizeLabel(it,b,inv);
@@ -625,6 +930,7 @@ function addRoadHandles(it, inv){
   overlay.appendChild(absHandle('end2', it.pts[it.pts.length-1][0], it.pts[it.pts.length-1][1], inv));
   for (let i=1;i<it.pts.length-1;i++){
     const h = el('g',{transform:`translate(${it.pts[i][0]},${it.pts[i][1]})`,'data-handle':'vtx','data-index':i});
+    h.appendChild(el('circle',{r:9*inv,fill:'none','pointer-events':'all'}));
     h.appendChild(el('circle',{r:6*inv,fill:'#fff',stroke:'#e37400','stroke-width':1.6*inv}));
     h.appendChild(el('circle',{r:2.2*inv,fill:'#e37400','pointer-events':'none'}));
     const ti = el('title',{}); ti.textContent = 'Kéo để uốn • Nhấp đúp để bỏ điểm uốn';
@@ -634,6 +940,7 @@ function addRoadHandles(it, inv){
   for (let i=0;i<it.pts.length-1;i++){
     const m = segMid(it.pts, it.soft, i);
     const h = el('g',{transform:`translate(${m[0].toFixed(2)},${m[1].toFixed(2)})`,'data-handle':'add','data-index':i});
+    h.appendChild(el('circle',{r:8*inv,fill:'none','pointer-events':'all'}));
     h.appendChild(el('circle',{r:4.5*inv,fill:'#fff',stroke:'#1a73e8','stroke-width':1.3*inv,'stroke-dasharray':`${2.5*inv} ${2*inv}`}));
     h.appendChild(el('path',{d:'M'+(-1.8*inv)+',0 H'+(1.8*inv)+' M0,'+(-1.8*inv)+' V'+(1.8*inv),stroke:'#1a73e8','stroke-width':1.1*inv,'pointer-events':'none'}));
     const ti = el('title',{}); ti.textContent = 'Kéo ra để thêm chỗ uốn';
@@ -645,7 +952,7 @@ function addRoadHandles(it, inv){
   const a = S[Math.max(0,mi-1)], b2 = S[Math.min(S.length-1,mi+1)];
   const dx = b2[0]-a[0], dy = b2[1]-a[1], L = Math.hypot(dx,dy)||1;
   const c = S[mi];
-  const wx = c[0] + (-dy/L)*(it.w/2), wy = c[1] + (dx/L)*(it.w/2);
+  const wx = c[0] + (-dy/L)*(it.w/2 + 16*inv), wy = c[1] + (dx/L)*(it.w/2 + 16*inv);
   overlay.appendChild(el('line',{x1:c[0],y1:c[1],x2:wx,y2:wy,stroke:'#1a73e8','stroke-width':1.2*inv,'stroke-dasharray':`${4*inv} ${3*inv}`,'pointer-events':'none'}));
   const wh = absHandle('width',wx,wy,inv);
   wh.firstChild.setAttribute('r',7*inv);
@@ -667,7 +974,15 @@ let editing = null;
 let editHintShown = false;
 let roadHintShown = false;
 function select(id){
-  sel = id; editing = null; drawOverlay(); syncToolbar(); syncProps();
+  sel = id; editing = null;
+  if (id != null){
+    const sIt = byId(id);
+    if (sIt && (sIt.type === 'park' || sIt.type === 'pond' || (sIt.type === 'sh' && shConvertible(sIt)))){
+      if (!sIt.pts){ if (!convertToPts(sIt)) return; renderItem(sIt); scheduleSave(); }
+      editing = id;
+    }
+  }
+  drawOverlay(); syncToolbar(); syncProps();
   if (id != null && !roadHintShown){
     const it = byId(id);
     if (it && it.type === 'road'){
@@ -680,8 +995,9 @@ function select(id){
 /* ---------- biến đổi khung nhìn ---------- */
 function applyTransform(){
   world.setAttribute('transform', `translate(${tx},${ty}) scale(${zoom})`);
-  zoomLabel.textContent = Math.round(zoom*100) + '%';
+  if (document.activeElement !== zoomLabel) zoomLabel.value = Math.round(zoom*100) + '%';
   drawOverlay();
+  scheduleSave();
 }
 function setZoom(nz){
   const r = board.getBoundingClientRect();
@@ -703,6 +1019,10 @@ function startMove(e, it){
 function startHandle(e, name, hElm){
   const it = byId(sel); if (!it) return;
   if (name === 'dup'){ duplicateSel(); return; }
+  if (name === 'col'){
+    if (it.type === 'sh') openShapeFormatter(it); else openHouseColorPicker(it);
+    return;
+  }
   if (name === 'del'){ deleteSel(); return; }
   const before = snapshot();
   const w = toWorldPt(e);
@@ -891,12 +1211,16 @@ board.addEventListener('dblclick', e => {
       });
     } else if (VERTEX_ITEMS.has(it.type)){
       select(it.id);
-      if (!it.pts) convertToPts(it);
-      editing = it.id;
-      drawOverlay();
-      if (!editHintShown){
-        toast('Đang sửa đỉnh: kéo các chấm để nắn hình • chấm đứt quãng để thêm đỉnh • nhấp đúp vào đỉnh để xóa • Esc để thoát');
-        editHintShown = true;
+      const it2 = byId(it.id);
+      if (!it2.pts && !convertToPts(it2)){
+        toast('Hình này giữ nguyên dạng cong chuẩn — không sửa điểm được');
+      } else {
+        editing = it2.id;
+        drawOverlay();
+        if (!editHintShown){
+          toast('Đang sửa đỉnh: kéo các chấm để nắn hình • chấm đứt quãng để thêm đỉnh • nhấp đúp vào đỉnh để xóa • Esc để thoát');
+          editHintShown = true;
+        }
       }
     }
     return;
@@ -921,7 +1245,7 @@ board.addEventListener('drop', e => {
   const type = e.dataTransfer.getData('text/plain');
   if (!type || !DEFAULTS[type]) return;
   const w = toWorldPt(e);
-  addItem(type, w.x, w.y);
+  addItem(type, w.x, w.y, {shape: e.dataTransfer.getData('text/shape') || 'rect'});
 });
 
 /* ---------- lịch sử ---------- */
@@ -930,7 +1254,7 @@ function commit(before){
   undoStack.push(before);
   if (undoStack.length > 150) undoStack.shift();
   redoStack.length = 0;
-  syncToolbar(); syncProps();
+  syncToolbar(); syncProps(); scheduleSave();
 }
 function undo(){
   if (!undoStack.length) return;
@@ -950,10 +1274,52 @@ function restore(){
   drawOverlay(); syncToolbar(); syncProps();
 }
 
+/* ---------- lưu phiên làm việc (localStorage) ---------- */
+const SAVE_KEY = 'mapDrawSVG.v1';
+let saveTimer = null;
+function saveNow(){
+  try{
+    localStorage.setItem(SAVE_KEY, JSON.stringify({
+      v:1, items, theme:themeName, gridOn, view:{zoom,tx,ty}, savedAt:Date.now()
+    }));
+  }catch(e){ /* localStorage đầy — bỏ im */ }
+}
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 400);
+}
+function loadSaved(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d || !Array.isArray(d.items)) return false;
+    items = d.items.filter(x => !(x.type === 'sh' && x.shape === 'moon'));
+    let mx = 0;
+    items.forEach(x => { if (x.id > mx) mx = x.id; });
+    nextId = mx + 1;
+    if (d.theme && THEMES[d.theme]) themeName = d.theme;
+    gridOn = d.gridOn !== false;
+    if (d.view){
+      zoom = Math.min(4, Math.max(0.25, d.view.zoom || 1));
+      tx = d.view.tx || 0;
+      ty = d.view.ty || 0;
+    }
+    return true;
+  }catch(e){ return false; }
+}
+window.addEventListener('beforeunload', saveNow);
+
 /* ---------- hành động ---------- */
-function addItem(type, x, y){
+function addItem(type, x, y, opts){
   const before = snapshot();
   const it = createItem(type, x, y);
+  if (type === 'sh' && opts && opts.shape && SHAPES2[opts.shape]){
+    it.shape = opts.shape;
+    it.w = SHAPES2[opts.shape].dw || 110;
+    it.h = SHAPES2[opts.shape].dh || 90;
+    it.cv = SHAPES2[opts.shape].cv0 || 0;
+  }
   items.push(it);
   renderItem(it);
   if (type === 'label-road' || type === 'label-area'){
@@ -986,6 +1352,7 @@ function removeItemSilently(it){
   const rec = els.get(it.id);
   if (rec){ if (rec.casing) rec.casing.remove(); rec.main.remove(); els.delete(it.id); }
   items = items.filter(x => x.id !== it.id);
+  scheduleSave();
 }
 function deleteSel(){
   if (sel == null) return;
@@ -1175,12 +1542,16 @@ function exportPNG(){
 }
 
 /* ---------- thông báo ---------- */
-let hintTimer = null;
-const HINT_DEFAULT = 'Kéo mẫu vào bản đồ • Chọn đường/sông: kéo chấm CAM để uốn cong, sửa chỉ số ở góc phải • Nhấp đúp vào hình để sửa đỉnh • Nhấp đúp vào tên để đổi chữ • Ctrl+Z: hoàn tác';
+let toastTimer = null;
 function toast(msg){
-  hint.textContent = msg;
-  clearTimeout(hintTimer);
-  hintTimer = setTimeout(() => hint.textContent = HINT_DEFAULT, 2600);
+  toastEl.textContent = msg;
+  toastEl.hidden = false;
+  requestAnimationFrame(() => toastEl.classList.add('show'));
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    toastEl.classList.remove('show');
+    setTimeout(() => { toastEl.hidden = true; }, 260);
+  }, 2400);
 }
 
 /* ---------- modal nhập tên ---------- */
@@ -1188,60 +1559,346 @@ const modalEl = document.getElementById('modal');
 const modalTitle = document.getElementById('modalTitle');
 const modalInput = document.getElementById('modalInput');
 const modalPicker = document.getElementById('modalPicker');
-let pkSel = {icon:'home', color:'#4285F4'};
+const modalImport = document.getElementById('modalImport');
+const modalOkBtn = document.getElementById('modalOk');
+const impText = document.getElementById('impText');
+const impFile = document.getElementById('impFile');
+const impPreview = document.getElementById('impPreview');
+const impMsg = document.getElementById('impMsg');
+let impData = null;
+let pkSel = {icon:'home', color:'#4285F4', color2:null, cv:0.1, shape:'rect'};
+let pkShowIcons = true, pkColorList = [], pkColorList2 = null, pkShowShapes = false, pkSlider = false, pkSliderTarget = 'cv', pkItem = null, pkOrig = null, pkLabel1 = 'Màu hiển thị', pkLabel2 = 'Màu viền';
+let pkMatchOn = false, pkLastStroke = null;
+let pkCustomTarget = 'color';
+function applyCustom(v, target){
+  if (target === 'color2'){
+    pkSel.color2 = v;
+    if (pkItem && pkItem.type === 'sh'){ pkItem.stroke = v; renderItem(pkItem); }
+  } else {
+    pkSel.color = v;
+    if (pkItem && pkItem.type === 'sh'){ pkItem.fill = v; renderItem(pkItem); }
+  }
+  renderPicker();
+}
+function swatchBg(v){
+  if (v === '') return 'linear-gradient(135deg, #fff 44%, #dadce0 44%, #dadce0 56%, #fff 56%)';
+  return v;
+}
+function normSwatch(item){
+  return Array.isArray(item) ? {v:item[0], label:item[1]} : item;
+}
 function renderPicker(){
+  const shapesEl = document.getElementById('pkShapes');
+  document.getElementById('pkShapeLabel').hidden = !pkShowShapes;
+  shapesEl.hidden = !pkShowShapes;
+  if (pkShowShapes){
+    shapesEl.innerHTML = '';
+    SHAPE_KEYS.forEach(key => {
+      const s = SHAPES2[key];
+      const t = document.createElement('div');
+      t.className = 'pkIcon' + (pkSel.shape === key ? ' sel' : '');
+      t.title = s.label;
+      t.innerHTML = '<svg viewBox="-0.68 -0.68 1.36 1.36" width="27" height="27">' + shapeInner(key, {w:1,h:1,cv:s.cv0||0,fill:'#d5dbe2',stroke:'#3c4043'}, 0.06) + '</svg>';
+      t.addEventListener('click', () => {
+        pkSel.shape = key;
+        if (pkItem && pkItem.type === 'sh'){
+          pkItem.shape = key;
+          if (pkItem.pts && !convertToPts(pkItem, key)) delete pkItem.pts;
+          renderItem(pkItem);
+        }
+        renderPicker();
+      });
+      shapesEl.appendChild(t);
+    });
+  }
   const iconsEl = document.getElementById('pkIcons');
-  iconsEl.innerHTML = '';
-  GLYPH_LIST.forEach(([key,label]) => {
-    const t = document.createElement('div');
-    t.className = 'pkIcon' + (pkSel.icon === key ? ' sel' : '');
-    t.title = label;
-    t.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><g fill="#5f6368">'+GLYPHS[key]+'</g></svg>';
-    t.addEventListener('click', () => { pkSel.icon = key; renderPicker(); });
-    iconsEl.appendChild(t);
-  });
+  document.getElementById('pkIconLabel').hidden = !pkShowIcons;
+  iconsEl.hidden = !pkShowIcons;
+  if (pkShowIcons){
+    iconsEl.innerHTML = '';
+    GLYPH_LIST.forEach(([key,label]) => {
+      const t = document.createElement('div');
+      t.className = 'pkIcon' + (pkSel.icon === key ? ' sel' : '');
+      t.title = label;
+      t.innerHTML = '<svg viewBox="0 0 24 24" width="22" height="22"><g fill="#5f6368">'+GLYPHS[key]+'</g></svg>';
+      t.addEventListener('click', () => { pkSel.icon = key; renderPicker(); });
+      iconsEl.appendChild(t);
+    });
+  }
+  document.getElementById('pkC1Label').textContent = pkLabel1;
   const colEl = document.getElementById('pkColors');
   colEl.innerHTML = '';
-  PIN_COLORS.forEach(c => {
+  pkColorList.forEach(item => {
     const sw = document.createElement('span');
-    sw.className = 'pkColor' + (pkSel.color === c ? ' sel' : '');
-    sw.style.background = c;
-    sw.addEventListener('click', () => { pkSel.color = c; renderPicker(); });
+    sw.className = 'pkColor' + (pkSel.color === item.v ? ' sel' : '');
+    sw.title = item.label;
+    sw.style.background = swatchBg(item.v);
+    sw.addEventListener('click', () => {
+      pkSel.color = item.v;
+      if (pkItem && pkItem.type === 'sh'){
+        pkItem.fill = item.v || null;
+        if (pkMatchOn && item.v){ pkSel.color2 = item.v; pkItem.stroke = item.v || null; }
+        renderItem(pkItem);
+      }
+      renderPicker();
+    });
     colEl.appendChild(sw);
   });
+  const row2 = document.getElementById('pkColor2Row');
+  row2.hidden = !pkColorList2;
+  let c2 = null;
+  if (pkColorList2){
+    document.getElementById('pkC2Label').textContent = pkLabel2;
+    c2 = document.getElementById('pkColors2');
+    c2.innerHTML = '';
+    pkColorList2.forEach(item => {
+      const sw = document.createElement('span');
+      sw.className = 'pkColor' + ((pkSel.color2||'') === item.v ? ' sel' : '');
+      sw.title = item.label;
+      sw.style.background = swatchBg(item.v);
+    sw.addEventListener('click', () => {
+      pkSel.color2 = item.v;
+      if (pkMatchOn){ pkMatchOn = false; document.getElementById('pkMatch').checked = false; }
+      if (pkItem && pkItem.type === 'sh'){ pkItem.stroke = item.v || null; renderItem(pkItem); }
+      renderPicker();
+    });
+    c2.appendChild(sw);
+    });
+  }
+  const addCustom = (rowEl, target) => {    const cur = target === 'color2' ? pkSel.color2 : pkSel.color;
+    const used = cur != null && !pkColorList.some(i => i.v === cur);
+    const cs = document.createElement('span');
+    cs.className = 'pkColor pkCustom' + (used ? ' sel' : '');
+    cs.title = 'Màu tùy chọn';
+    cs.style.background = used ? cur : '';
+    cs.addEventListener('click', () => {
+      pkCustomTarget = target;
+      document.getElementById('pkCustomColor').click();
+    });
+    rowEl.appendChild(cs);
+    if (window.EyeDropper){
+      const ed = document.createElement('span');
+      ed.className = 'pkColor pkEd'; ed.title = 'Lấy màu từ màn hình';
+      ed.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14"><path fill="#5f6368" d="M17.66 7.93L12 2.27 6.34 7.93c-3.12 3.12-3.12 8.19 0 11.31C7.9 20.8 10.07 21.58 12.24 21.58c2.17 0 4.34-.78 6-2.34 3.12-3.12 3.12-8.19 0-11.31zM12 19.59c-1.6 0-3.11-.62-4.24-1.76C6.62 16.69 6 15.19 6 13.59s.62-3.11 1.76-4.24L12 5.17v14.42z"/></svg>';
+      ed.addEventListener('click', async () => {
+        try{
+          const res = await new window.EyeDropper().open();
+          applyCustom(res.sRGBHex, target);
+        }catch(err){ /* người dùng hủy */ }
+      });
+      rowEl.appendChild(ed);
+    }
+  };
+  addCustom(colEl, 'color');
+  if (pkColorList2) addCustom(c2, 'color2');
+  const sl = document.getElementById('pkSliderRow');
+  sl.hidden = !pkSlider;
+  if (pkSlider){
+    document.getElementById('pkCv').value = Math.round((pkSel.cv||0)*100);
+    document.getElementById('pkCvVal').textContent = Math.round((pkSel.cv||0)*100) + '%';
+  }
 }
+document.getElementById('pkCustomColor').addEventListener('input', e => {
+  applyCustom(e.target.value, pkCustomTarget);
+});
+document.getElementById('pkMatch').addEventListener('change', e => {
+  pkMatchOn = e.target.checked;
+  if (pkItem && pkItem.type === 'sh'){
+    if (pkMatchOn){ pkLastStroke = pkSel.color2; pkSel.color2 = pkSel.color; pkItem.stroke = pkSel.color || null; }
+    else { pkSel.color2 = pkLastStroke; pkItem.stroke = pkLastStroke || null; }
+    renderItem(pkItem);
+  }
+  renderPicker();
+});
+document.getElementById('pkCv').addEventListener('input', e => {
+  pkSel.cv = +e.target.value/100;
+  document.getElementById('pkCvVal').textContent = e.target.value + '%';
+  if (pkItem && pkSliderTarget){ pkItem[pkSliderTarget] = pkSel.cv; renderItem(pkItem); }
+});
 let modalOkCb = null, modalCancelCb = null;
 function openModal(title, value, onOk, onCancel){
   modalTitle.textContent = title;
   modalInput.style.display = '';
   modalPicker.hidden = true;
+  modalImport.hidden = true;
+  modalOkBtn.textContent = 'Lưu';
   modalInput.value = value || '';
   modalOkCb = onOk || null;
   modalCancelCb = onCancel || null;
   modalEl.hidden = false;
   setTimeout(() => { modalInput.focus(); modalInput.select(); }, 0);
 }
-function openPicker(title, it, onOk, onCancel){
+function openPicker(title, it, onOk, onCancel, opts){
+  opts = opts || {};
   modalTitle.textContent = title;
   modalInput.style.display = 'none';
   modalPicker.hidden = false;
-  pkSel = {icon: it.icon || 'home', color: it.color || '#4285F4'};
+  modalImport.hidden = true;
+  modalOkBtn.textContent = opts.okText || 'Lưu';
+  pkShowIcons = opts.icons !== false;
+  pkShowShapes = !!opts.shape;
+  pkSlider = !!opts.slider;
+  pkSliderTarget = opts.sliderTarget || 'cv';
+  pkColorList = (opts.colors || PIN_COLORS).map(normSwatch);
+  pkColorList2 = opts.colors2 ? opts.colors2.map(normSwatch) : null;
+  pkLabel1 = opts.c1Label || 'Màu hiển thị';
+  pkLabel2 = opts.c2Label || 'Màu viền';
+  pkItem = it || null;
+  pkOrig = it ? {shape:it.shape, icon:it.icon, color:it.color, color2:it.stroke, cv:it.cv, cs:it.cs} : null;
+  pkMatchOn = !!(opts.matchRow && it.fill && it.stroke && it.stroke === it.fill);
+  pkLastStroke = it.stroke || (pkColorList2 ? pkColorList2[0].v : null);
+  document.getElementById('pkMatchRow').hidden = !opts.matchRow;
+  document.getElementById('pkMatch').checked = pkMatchOn;
+  const tv = it[pkSliderTarget];
+  pkSel = {
+    icon: it.icon || 'home',
+    shape: it.shape || 'rect',
+    color: it.color != null ? it.color : (pkColorList[0] ? pkColorList[0].v : '#4285F4'),
+    color2: it.stroke != null ? it.stroke : (pkColorList2 ? pkColorList2[0].v : null),
+    cv: tv != null ? tv : 0.1
+  };
+  document.getElementById('pkCvLabelText').textContent = opts.sliderLabel || 'Độ cong';
   renderPicker();
   modalOkCb = onOk || null;
   modalCancelCb = onCancel || null;
   modalEl.hidden = false;
 }
+function openShapeFormatter(it){
+  const before = snapshot();
+  const sKind = (SHAPES2[it.shape] || {}).kind;
+  const target = it.pts ? 'cs' : (sKind === 'fn' ? null : 'cv');
+  const orig = {shape:it.shape, fill:it.fill, stroke:it.stroke, cv:it.cv, cs:it.cs};
+  openPicker('Định dạng hình khối', it, sel => {
+    if (sel.shape) it.shape = sel.shape;
+    it.fill = sel.color || null;
+    it.stroke = sel.color2 === '' ? null : (sel.color2 || it.stroke);
+    if (sel.cv != null && target) it[target] = sel.cv;
+    renderItem(it); drawOverlay(); commit(before);
+  }, () => {
+    Object.assign(it, orig);
+    renderItem(it); drawOverlay();
+  }, {icons:false, shape:true, slider:!!target, sliderTarget:target, sliderLabel: target === 'cs' ? 'Độ mềm' : 'Độ cong', matchRow:true, colors:SHAPE_FILLS, colors2:SHAPE_STROKES, c1Label:'Màu nền', c2Label:'Màu viền'});
+}
+function openHouseColorPicker(it){
+  const before = snapshot();
+  openPicker('Màu công trình', it, sel => {
+    it.color = sel.color || null;
+    renderItem(it); drawOverlay(); commit(before);
+  }, null, {icons:false, colors:HOUSE_COLORS});
+}
+function openImporter(){
+  modalTitle.textContent = 'Nhập SVG';
+  modalInput.style.display = 'none';
+  modalPicker.hidden = true;
+  modalImport.hidden = false;
+  modalOkBtn.textContent = 'Áp dụng';
+  impText.value = '';
+  impFile.value = '';
+  impPreview.hidden = true;
+  impPreview.innerHTML = '';
+  impMsg.textContent = '';
+  impData = null;
+  modalOkCb = () => {
+    if (!impData){ impMsg.textContent = 'Mã SVG chưa hợp lệ hoặc đang trống'; return false; }
+    const r = board.getBoundingClientRect();
+    addItemExt(impData, (r.width/2-tx)/zoom, (r.height/2-ty)/zoom);
+  };
+  modalCancelCb = null;
+  modalEl.hidden = false;
+}
+function namespaceIds(root, prefix){
+  const ids = [];
+  root.querySelectorAll('[id]').forEach(el => { if (el.id) ids.push(el.id); });
+  let inner = '';
+  Array.prototype.forEach.call(root.childNodes, n => { inner += new XMLSerializer().serializeToString(n); });
+  if (!ids.length) return inner;
+  const map = {};
+  ids.forEach(id => { map[id] = prefix + id; });
+  inner = inner.replace(/\bid="([^"]+)"/g, (m,id) => map[id] ? 'id="'+map[id]+'"' : m);
+  inner = inner.replace(/url\(#([^)]+)\)/g, (m,id) => map[id] ? 'url(#'+map[id]+')' : m);
+  inner = inner.replace(/((?:xlink:)?href)="#([^"]+)"/g, (m,at,id) => map[id] ? at+'="#'+map[id]+'"' : m);
+  return inner;
+}
+function parseImportedSVG(text){
+  if (!text || !text.trim()) return null;
+  let doc;
+  try{ doc = new DOMParser().parseFromString(text, 'image/svg+xml'); }catch(e){ return null; }
+  const root = doc.querySelector('svg');
+  if (!root || doc.querySelector('parsererror')) return null;
+  root.querySelectorAll('script,foreignObject,iframe,object,embed').forEach(el => el.remove());
+  root.querySelectorAll('*').forEach(el => {
+    Array.prototype.forEach.call(el.attributes, a => { if (/^on/i.test(a.name)) el.removeAttribute(a.name); });
+  });
+  let vb = root.getAttribute('viewBox'), vw = 0, vh = 0;
+  if (vb){
+    const p = vb.trim().split(/[\s,]+/).map(Number);
+    if (p.length === 4 && p.every(n => isFinite(n)) && p[2] > 0 && p[3] > 0){ vb = p.join(' '); vw = p[2]; vh = p[3]; }
+    else vb = null;
+  }
+  if (!vb){
+    const wd = parseFloat(root.getAttribute('width')), ht = parseFloat(root.getAttribute('height'));
+    if (isFinite(wd) && isFinite(ht) && wd > 0 && ht > 0){ vw = wd; vh = ht; vb = '0 0 '+vw+' '+vh; }
+    else { vw = 100; vh = 100; vb = '0 0 100 100'; }
+  }
+  const k = 240/Math.max(vw,vh);
+  const w = Math.max(40, Math.round(vw*Math.min(k,3)));
+  const h = Math.max(40, Math.round(vh*Math.min(k,3)));
+  const markup = namespaceIds(root, 'x'+Date.now().toString(36)+'_');
+  return {markup, vb, w, h, vw, vh};
+}
+function updateImpPreview(){
+  impData = parseImportedSVG(impText.value);
+  if (impData){
+    impPreview.hidden = false;
+    impPreview.innerHTML = '<svg width="100%" height="100%" viewBox="'+impData.vb+'" preserveAspectRatio="xMidYMid meet">'+impData.markup+'</svg>';
+    impMsg.textContent = 'Kích thước gốc '+impData.vw+'×'+impData.vh+' → đặt lên canvas '+impData.w+'×'+impData.h+' px';
+  } else {
+    impPreview.hidden = true;
+    impPreview.innerHTML = '';
+    impMsg.textContent = impText.value.trim() ? 'Mã SVG chưa hợp lệ' : '';
+  }
+}
+let impTimer = null;
+impText.addEventListener('input', () => {
+  clearTimeout(impTimer);
+  impTimer = setTimeout(updateImpPreview, 300);
+});
+impFile.addEventListener('change', () => {
+  const f = impFile.files && impFile.files[0];
+  if (!f) return;
+  const rd = new FileReader();
+  rd.onload = () => { impText.value = String(rd.result || ''); updateImpPreview(); };
+  rd.readAsText(f);
+});
+function addItemExt(d, x, y){
+  const before = snapshot();
+  const it = createItem('ext', snap(x), snap(y));
+  it.markup = d.markup; it.vb = d.vb; it.w = d.w; it.h = d.h;
+  items.push(it);
+  renderItem(it); select(it.id); commit(before);
+}
 function closeModal(){
   modalEl.hidden = true;
+  modalImport.hidden = true;
+  modalOkBtn.textContent = 'Lưu';
+  impData = null;
   modalOkCb = null;
   modalCancelCb = null;
 }
 function submitModal(){
-  const isPicker = !modalPicker.hidden;
-  const arg = isPicker ? {icon:pkSel.icon, color:pkSel.color} : modalInput.value.trim().slice(0,60);
+  let arg;
+  if (!modalImport.hidden){
+    arg = impData ? {markup:impData.markup, vb:impData.vb, w:impData.w, h:impData.h, vw:impData.vw, vh:impData.vh} : null;
+  } else if (!modalPicker.hidden){
+    arg = {icon:pkSel.icon, color:pkSel.color, color2:pkSel.color2, cv:pkSel.cv, shape:pkSel.shape};
+  } else {
+    arg = modalInput.value.trim().slice(0,60);
+  }
   const ok = modalOkCb;
+  if (ok){
+    if (ok(arg) === false) return;
+  }
   closeModal();
-  if (ok) ok(arg);
 }
 document.getElementById('modalOk').addEventListener('click', submitModal);
 document.getElementById('modalCancel').addEventListener('click', () => {
@@ -1270,9 +1927,6 @@ modalInput.addEventListener('keydown', e => {
 function syncToolbar(){
   btnUndo.disabled = !undoStack.length;
   btnRedo.disabled = !redoStack.length;
-  const has = sel != null && !!byId(sel);
-  btnDup.disabled = !has;
-  btnDel.disabled = !has;
 }
 btnUndo.addEventListener('click', undo);
 btnRedo.addEventListener('click', redo);
@@ -1280,12 +1934,44 @@ btnGrid.addEventListener('click', () => {
   gridOn = !gridOn;
   btnGrid.classList.toggle('active', gridOn);
   document.getElementById('gridRect').style.display = gridOn ? '' : 'none';
+  scheduleSave();
   toast(gridOn ? 'Đã bật lưới + bám lưới' : 'Đã tắt lưới + bám lưới');
 });
-btnDup.addEventListener('click', duplicateSel);
-btnDel.addEventListener('click', deleteSel);
+document.getElementById('btnShapes').addEventListener('click', e => {
+  e.stopPropagation();
+  shapeMenu.hidden = !shapeMenu.hidden;
+});
 document.getElementById('btnZoomIn').addEventListener('click', () => setZoom(zoom*1.25));
 document.getElementById('btnZoomOut').addEventListener('click', () => setZoom(zoom/1.25));
+zoomLabel.addEventListener('keydown', e => { if (e.key === 'Enter') zoomLabel.blur(); });
+zoomLabel.addEventListener('change', () => {
+  const v = parseFloat(String(zoomLabel.value).replace(/[^\d.]/g,''));
+  if (!isFinite(v) || v <= 0){ applyTransform(); return; }
+  setZoom(v/100);
+});
+function buildShapeMenu(){
+  const grid = document.getElementById('shapeGrid');
+  grid.innerHTML = '';
+  SHAPE_KEYS.forEach(key => {
+    const s = SHAPES2[key];
+    const d = document.createElement('div');
+    d.className = 'mShape'; d.title = s.label;
+    d.innerHTML = '<svg viewBox="-0.68 -0.68 1.36 1.36" width="26" height="26">' + shapeInner(key, {w:1,h:1,cv:s.cv0||0,fill:'#d5dbe2',stroke:'#3c4043'}, 0.06) + '</svg>';
+    d.addEventListener('click', () => {
+      shapeMenu.hidden = true;
+      const r = board.getBoundingClientRect();
+      addItem('sh', (r.width/2-tx)/zoom, (r.height/2-ty)/zoom, {shape:key});
+    });
+    grid.appendChild(d);
+  });
+}
+document.addEventListener('pointerdown', e => {
+  if (!shapeMenu.hidden && !shapeMenuWrap.contains(e.target)) shapeMenu.hidden = true;
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !shapeMenu.hidden) shapeMenu.hidden = true;
+});
+document.getElementById('btnImport').addEventListener('click', openImporter);
 document.getElementById('btnSVG').addEventListener('click', exportSVG);
 document.getElementById('btnPNG').addEventListener('click', exportPNG);
 document.getElementById('btnCopySVG').addEventListener('click', async () => {
@@ -1363,23 +2049,35 @@ function applyTheme(name){
   renderAll();
   drawOverlay();
   syncProps();
+  scheduleSave();
 }
 
 /* ---------- khởi động ---------- */
 buildPalette();
 setupDefs();
+buildShapeMenu();
+const restored = loadSaved();
 renderAll();
-(function fitView(){
-  const r = board.getBoundingClientRect();
-  const b = bounds();
-  zoom = Math.min(1, (r.width-80)/b.w, (r.height-80)/b.h);
-  zoom = Math.max(0.4, zoom);
-  tx = r.width/2 - (b.x+b.w/2)*zoom;
-  ty = r.height/2 - (b.y+b.h/2)*zoom;
+if (restored){
+  applyTheme(themeName);
   applyTransform();
-})();
-board.style.background = C('bg');
-hint.textContent = HINT_DEFAULT;
+  if (!gridOn){
+    document.getElementById('gridRect').style.display = 'none';
+    btnGrid.classList.remove('active');
+  }
+  toast('Đã khôi phục phiên làm việc gần nhất');
+} else {
+  (function fitView(){
+    const r = board.getBoundingClientRect();
+    const b = bounds();
+    zoom = Math.min(1, (r.width-80)/b.w, (r.height-80)/b.h);
+    zoom = Math.max(0.4, zoom);
+    tx = r.width/2 - (b.x+b.w/2)*zoom;
+    ty = r.height/2 - (b.y+b.h/2)*zoom;
+    applyTransform();
+  })();
+  board.style.background = C('bg');
+}
 syncToolbar();
 
 function setupDefs(){
