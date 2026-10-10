@@ -28,6 +28,18 @@
   #shapeGrid{ display:grid; grid-template-columns:repeat(5, 36px); gap:6px; max-height:132px; overflow-y:auto; }
   .mShape{ width:36px; height:36px; display:flex; align-items:center; justify-content:center; border:1px solid #e8e8e4; border-radius:7px; cursor:pointer; background:#fff; }
   .mShape:hover{ background:#e8f0fe; border-color:#a8c7fa; }
+  #themeMenuWrap{ position:relative; }
+  #themeMenu{ position:absolute; top:calc(100% + 6px); left:0; background:#fff; border:1px solid #dadce0; border-radius:10px; box-shadow:0 6px 20px rgba(60,64,67,.25); padding:6px; z-index:40; min-width:200px; }
+  #themeMenu[hidden]{ display:none; }
+  .mItem{ padding:8px 12px; border-radius:7px; font-size:13px; color:#202124; cursor:pointer; }
+  .mItem:hover{ background:#e8f0fe; }
+  .mHint{ color:#9aa0a6; font-size:11px; }
+  #modalBg{ display:flex; flex-direction:column; gap:8px; }
+  #modalBg[hidden]{ display:none; }
+  #bgSwatches{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; }
+  #bgCustomRow{ display:flex; align-items:center; gap:8px; font-size:12px; color:#5f6368; }
+  #bgCustom{ width:34px; height:26px; padding:0; border:1px solid #dadce0; border-radius:6px; background:#fff; cursor:pointer; }
+  #bgPick{ cursor:pointer; }
   main{ flex:1; display:flex; min-height:0; }
   #palette{ width:192px; background:#fff; border-right:1px solid #e3e3e0; overflow-y:auto; padding:10px 8px 24px; flex-shrink:0; }
   .cat{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#80868b; margin:12px 6px 4px; }
@@ -106,7 +118,13 @@
   <button id="btnUndo" class="btn" title="Hoàn tác (Ctrl+Z)">↶</button>
   <button id="btnRedo" class="btn" title="Làm lại (Ctrl+Y)">↷</button>
   <button id="btnGrid" class="btn active" title="Bật/tắt lưới và bám lưới">Lưới</button>
-  <button id="btnTheme" class="btn" title="Đổi giao diện màu (Maps / Xám)">Giao diện</button>
+  <div id="themeMenuWrap">
+    <button id="btnTheme" class="btn" title="Giao diện và màu nền">Giao diện ▾</button>
+    <div id="themeMenu" hidden>
+      <div class="mItem" id="mTheme">Đổi giao diện <span class="mHint">(Maps / Xám)</span></div>
+      <div class="mItem" id="mBgColor">Đổi màu nền…</div>
+    </div>
+  </div>
   <div class="sep"></div>
   <div id="shapeMenuWrap">
     <button id="btnShapes" class="btn" title="Chèn hình khối">Hình khối ▾</button>
@@ -172,7 +190,17 @@
         <div class="pk-label" style="display:flex;justify-content:space-between;"><span id="pkCvLabelText">Độ cong</span> <span id="pkCvVal">0%</span></div>
         <input id="pkCv" type="range" min="0" max="45" value="0" style="width:100%;accent-color:#1a73e8;">
       </div>
-      <input id="pkCustomColor" type="color" value="#4285F4" style="position:absolute; left:-9999px; top:0; opacity:0;">
+    </div>
+    <input id="pkCustomColor" type="color" value="#4285F4" style="position:absolute; left:-9999px; top:0; opacity:0;">
+    <div id="modalBg" hidden>
+      <div class="pk-label">Màu nền mẫu</div>
+      <div id="bgSwatches"></div>
+      <div class="pk-label">Màu tùy chọn</div>
+      <div id="bgCustomRow">
+        <input id="bgCustom" type="color" value="#f2f1ec">
+        <span class="pkColor pkEd" id="bgPick" title="Lấy màu từ màn hình"><svg viewBox="0 0 24 24" width="14" height="14"><path fill="#5f6368" d="M17.66 7.93L12 2.27 6.34 7.93c-3.12 3.12-3.12 8.19 0 11.31C7.9 20.8 10.07 21.58 12.24 21.58c2.17 0 4.34-.78 6-2.34 3.12-3.12 3.12-8.19 0-11.31zM12 19.59c-1.6 0-3.11-.62-4.24-1.76C6.62 16.69 6 15.19 6 13.59s.62-3.11 1.76-4.24L12 5.17v14.42z"/></svg></span>
+        <span>Xem trước hiện ngay — bấm Áp dụng để chốt</span>
+      </div>
     </div>
     <div id="modalImport" hidden>
       <div class="pk-label">Dán mã SVG:</div>
@@ -245,7 +273,18 @@ const THEMES = {
   }
 };
 let themeName = 'maps';
+let customBg = null, bgDraft = null;
 const C = k => THEMES[themeName][k];
+function bgColor(){ return customBg || C('bg'); }
+function gridDotFor(bg){
+  const r = parseInt(bg.slice(1,3),16), g = parseInt(bg.slice(3,5),16), b = parseInt(bg.slice(5,7),16);
+  return (0.299*r + 0.587*g + 0.114*b)/255 < 0.4 ? '#5f6469' : C('grid');
+}
+function applyCanvasBg(){
+  board.style.background = bgColor();
+  const dot = document.querySelector('#defs pattern circle');
+  if (dot) dot.setAttribute('fill', gridDotFor(bgColor()));
+}
 const houseCol = (it,k) => it.color || C(k);
 const HOUSE_TYPES = new Set(['house','house-town','house-l','house-t','house-u','house-trap','house-para','building','building-l','building-long']);
 const PALETTE_ICON = 'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9c.83 0 1.5-.67 1.5-1.5 0-.39-.15-.74-.39-1.01-.23-.26-.38-.6-.38-.99 0-.83.67-1.5 1.5-1.5H16c2.76 0 5-2.24 5-5 0-4.42-4.03-8-9-8zm-5.5 9c-.83 0-1.5-.67-1.5-1.5S5.67 9 6.5 9 8 9.67 8 10.5 7.33 12 6.5 12zm3-4C8.67 8 8 7.33 8 6.5S8.67 5 9.5 5s1.5.67 1.5 1.5S10.33 8 9.5 8zm5 0c-.83 0-1.5-.67-1.5-1.5S13.67 5 14.5 5s1.5.67 1.5 1.5S15.33 8 14.5 8zm3 4c-.83 0-1.5-.67-1.5-1.5S16.67 9 17.5 9s1.5.67 1.5 1.5-.67 1.5-1.5 1.5z';
@@ -1280,7 +1319,7 @@ let saveTimer = null;
 function saveNow(){
   try{
     localStorage.setItem(SAVE_KEY, JSON.stringify({
-      v:1, items, theme:themeName, gridOn, view:{zoom,tx,ty}, savedAt:Date.now()
+      v:1, items, theme:themeName, gridOn, bg:customBg, view:{zoom,tx,ty}, savedAt:Date.now()
     }));
   }catch(e){ /* localStorage đầy — bỏ im */ }
 }
@@ -1299,6 +1338,7 @@ function loadSaved(){
     items.forEach(x => { if (x.id > mx) mx = x.id; });
     nextId = mx + 1;
     if (d.theme && THEMES[d.theme]) themeName = d.theme;
+    customBg = (typeof d.bg === 'string' && /^#[0-9a-fA-F]{6}$/.test(d.bg)) ? d.bg : null;
     gridOn = d.gridOn !== false;
     if (d.view){
       zoom = Math.min(4, Math.max(0.25, d.view.zoom || 1));
@@ -1504,7 +1544,7 @@ function exportSVGString(){
     width:Math.round(b.w+2*pad), height:Math.round(b.h+2*pad)
   });
   out.appendChild(shadowDefs());
-  out.appendChild(el('rect',{x:b.x-pad, y:b.y-pad, width:b.w+2*pad, height:b.h+2*pad, fill:C('bg')}));
+  out.appendChild(el('rect',{x:b.x-pad, y:b.y-pad, width:b.w+2*pad, height:b.h+2*pad, fill:bgColor()}));
   out.appendChild(layers.ground.cloneNode(true));
   out.appendChild(layers.casing.cloneNode(true));
   out.appendChild(layers.fill.cloneNode(true));
@@ -1532,7 +1572,7 @@ function exportPNG(){
     cv.width = Math.round((b.w+2*pad)*scale);
     cv.height = Math.round((b.h+2*pad)*scale);
     const ctx = cv.getContext('2d');
-    ctx.fillStyle = C('bg');
+    ctx.fillStyle = bgColor();
     ctx.fillRect(0,0,cv.width,cv.height);
     ctx.drawImage(img,0,0,cv.width,cv.height);
     cv.toBlob(bl => { downloadBlob(bl,'ban-do.png','image/png'); toast('Đã tải ban-do.png'); });
@@ -1560,6 +1600,8 @@ const modalTitle = document.getElementById('modalTitle');
 const modalInput = document.getElementById('modalInput');
 const modalPicker = document.getElementById('modalPicker');
 const modalImport = document.getElementById('modalImport');
+const modalBg = document.getElementById('modalBg');
+const bgCustomInput = document.getElementById('bgCustom');
 const modalOkBtn = document.getElementById('modalOk');
 const impText = document.getElementById('impText');
 const impFile = document.getElementById('impFile');
@@ -1721,6 +1763,7 @@ function openModal(title, value, onOk, onCancel){
   modalInput.style.display = '';
   modalPicker.hidden = true;
   modalImport.hidden = true;
+  modalBg.hidden = true;
   modalOkBtn.textContent = 'Lưu';
   modalInput.value = value || '';
   modalOkCb = onOk || null;
@@ -1734,6 +1777,7 @@ function openPicker(title, it, onOk, onCancel, opts){
   modalInput.style.display = 'none';
   modalPicker.hidden = false;
   modalImport.hidden = true;
+  modalBg.hidden = true;
   modalOkBtn.textContent = opts.okText || 'Lưu';
   pkShowIcons = opts.icons !== false;
   pkShowShapes = !!opts.shape;
@@ -1791,6 +1835,7 @@ function openImporter(){
   modalInput.style.display = 'none';
   modalPicker.hidden = true;
   modalImport.hidden = false;
+  modalBg.hidden = true;
   modalOkBtn.textContent = 'Áp dụng';
   impText.value = '';
   impFile.value = '';
@@ -1967,9 +2012,11 @@ function buildShapeMenu(){
 }
 document.addEventListener('pointerdown', e => {
   if (!shapeMenu.hidden && !shapeMenuWrap.contains(e.target)) shapeMenu.hidden = true;
+  if (!themeMenu.hidden && !themeMenuWrap.contains(e.target)) themeMenu.hidden = true;
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && !shapeMenu.hidden) shapeMenu.hidden = true;
+  if (e.key === 'Escape' && !themeMenu.hidden) themeMenu.hidden = true;
 });
 document.getElementById('btnImport').addEventListener('click', openImporter);
 document.getElementById('btnSVG').addEventListener('click', exportSVG);
@@ -2035,15 +2082,83 @@ pLen.addEventListener('change', () => applyProp(it => {
 }));
 pW.addEventListener('change', () => applyProp(it => { it.w = Math.max(8, snap2(+pW.value || 26)); }));
 pSoft.addEventListener('change', () => applyProp(it => { it.soft = Math.min(1, Math.max(0, Math.round((+pSoft.value || 0.5)*20)/20)); }));
-document.getElementById('btnTheme').addEventListener('click', () => {
+document.getElementById('btnTheme').addEventListener('click', e => {
+  e.stopPropagation();
+  themeMenu.hidden = !themeMenu.hidden;
+});
+document.getElementById('mTheme').addEventListener('click', () => {
+  themeMenu.hidden = true;
   applyTheme(themeName === 'maps' ? 'gray' : 'maps');
   toast('Đã đổi giao diện: ' + THEMES[themeName].name);
 });
+document.getElementById('mBgColor').addEventListener('click', () => {
+  themeMenu.hidden = true;
+  openBgPicker();
+});
+function openBgPicker(){
+  modalTitle.textContent = 'Màu nền canvas';
+  modalInput.style.display = 'none';
+  modalPicker.hidden = true;
+  modalImport.hidden = true;
+  modalBg.hidden = false;
+  modalOkBtn.textContent = 'Áp dụng';
+  bgDraft = customBg;
+  bgCustomInput.value = bgDraft || C('bg');
+  renderBgSwatches();
+  modalOkCb = () => {
+    customBg = bgDraft;
+    applyCanvasBg();
+    scheduleSave();
+  };
+  modalCancelCb = () => { applyCanvasBg(); };
+  modalEl.hidden = false;
+}
+function renderBgSwatches(){
+  const el = document.getElementById('bgSwatches');
+  el.innerHTML = '';
+  [{v:null, label:'Mặc định (theo giao diện)'}].concat(
+    [['#f2f1ec','Be (Maps)'],['#ffffff','Trắng'],['#e9eaeb','Xám (Gray)'],['#f5f5f5','Xám nhạt'],['#e8f0fe','Xanh da trời nhạt'],['#e6f4ea','Xanh pastel'],['#faf3dd','Kem'],['#31363b','Than tối']]
+      .map(p => ({v:p[0], label:p[1]}))
+  ).forEach(item => {
+    const sw = document.createElement('span');
+    const selNow = item.v === null ? bgDraft === null : bgDraft === item.v;
+    sw.className = 'pkColor' + (selNow ? ' sel' : '');
+    sw.title = item.label;
+    sw.style.background = item.v === null ? `linear-gradient(135deg, ${THEMES.maps.bg} 50%, ${THEMES.gray.bg} 50%)` : item.v;
+    sw.addEventListener('click', () => {
+      bgDraft = item.v;
+      bgCustomInput.value = item.v || bgCustomInput.value;
+      applyCanvasBgDraft();
+      renderBgSwatches();
+    });
+    el.appendChild(sw);
+  });
+}
+function applyCanvasBgDraft(){
+  const bg = bgDraft || C('bg');
+  board.style.background = bg;
+  const dot = document.querySelector('#defs pattern circle');
+  if (dot) dot.setAttribute('fill', gridDotFor(bg));
+}
+bgCustomInput.addEventListener('input', () => {
+  if (!/^#[0-9a-fA-F]{6}$/.test(bgCustomInput.value)) return;
+  bgDraft = bgCustomInput.value;
+  applyCanvasBgDraft();
+  renderBgSwatches();
+});
+document.getElementById('bgPick').addEventListener('click', async () => {
+  if (!window.EyeDropper){ toast('Trình duyệt không hỗ trợ ống hút'); return; }
+  try{
+    const res = await new window.EyeDropper().open();
+    bgDraft = res.sRGBHex;
+    bgCustomInput.value = bgDraft;
+    applyCanvasBgDraft();
+    renderBgSwatches();
+  }catch(err){ /* người dùng hủy */ }
+});
 function applyTheme(name){
   themeName = name;
-  board.style.background = C('bg');
-  const dot = document.querySelector('#defs pattern circle');
-  if (dot) dot.setAttribute('fill', C('grid'));
+  applyCanvasBg();
   document.getElementById('palette').innerHTML = '';
   buildPalette();
   renderAll();
@@ -2076,7 +2191,9 @@ if (restored){
     ty = r.height/2 - (b.y+b.h/2)*zoom;
     applyTransform();
   })();
-  board.style.background = C('bg');
+  board.style.background = bgColor();
+  const dotInit = document.querySelector('#defs pattern circle');
+  if (dotInit) dotInit.setAttribute('fill', gridDotFor(bgColor()));
 }
 syncToolbar();
 

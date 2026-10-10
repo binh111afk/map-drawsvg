@@ -16,7 +16,7 @@ Mở thẳng `index.html` bằng trình duyệt, hoặc (nếu bật GitHub Page
 - **Đổi màu nhà/tòa nhà**: xanh lá, xanh đậm hoặc màu tùy chọn.
 - **Sửa hình dạng tự do**: chọn công viên/hồ/hình khối là có chấm cong trên viền — kéo để nắn hình bất kỳ; nhà nhấp đúp để sửa đỉnh.
 - **Nhập SVG**: dán mã hoặc chọn file .svg, xem trước rồi đặt lên canvas như một vật thể.
-- **2 giao diện màu**: Google Maps & Xám công nghiệp (nút Giao diện).
+- **2 giao diện màu** (Google Maps & Xám công nghiệp) + **đổi màu nền canvas tùy chọn** (mẫu sẵn, màu tùy ý, ống hút lấy màu màn hình).
 - Khung chọn kiểu Canva: 4 chấm góc resize, nút xoay ↻, mini-toolbar nhân đôi/xóa/định dạng nổi trên vùng chọn.
 - **Tự lưu phiên làm việc** vào localStorage (mở lại là khôi phục nguyên trạng, kể cả theme và vị trí khung nhìn).
 - Undo/redo 150 bước, snap lưới, zoom (lăn chuột hoặc nhập %), pan, phím tắt (Ctrl+Z/Y/D, Delete, mũi tên).
